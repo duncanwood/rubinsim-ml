@@ -1,4 +1,5 @@
 # from . import events
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -186,6 +187,7 @@ def make_event_plots(df: pd.DataFrame, outdir=None, name=None):
   crossing_time_hist(*p)
   crossing_time_umin_scatter(*p)
   mag_in_te_bins(*p)
+  plt.close('all')
 
 def rows_in_bin(df, col, minval, maxval):
     return df[(df[col] >= minval) & (df[col] < maxval)]
@@ -294,9 +296,13 @@ def make_detection_plots(df: pd.DataFrame, outdir: str, name: str):
   p = (df, outdir, name)
   efficiency_in_te_bins(*p)
   detection_scatter_mag(*p)
+  plt.close('all')
 
 def make_all_plots(df: pd.DataFrame, outdir: str, name: str):
 
   p = (df, outdir, name)
   make_event_plots(*p)
   make_detection_plots(*p)
+  plt.close('all')
+
+
