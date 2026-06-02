@@ -22,6 +22,33 @@ Severity tags: [BUG] likely wrong result, [REPRO] reproducibility,
 
 ---
 
+## Status -- fixes applied 2026-06-02 (branch `fix/rubinml-audit-findings`)
+
+Applied (suite parity-green; goldens recaptured where behavior changed):
+- #1 MH source-index bug -- fixed (`source_arr[new_source_index]`); regression
+  test asserts each event's `source_index` matches its own `(gall,galb,mu0)`.
+- #2 dead/broken `log_rates_to_rubin_counts` -- removed.
+- #3 seed-point distance formula -- now `kpc_from_mu0`.
+- #4 `u_t` default mismatch -- aligned to 5.
+- #5 `make_metric_plots` indentation -- fixed (by inspection; not runtime-tested,
+  needs MAF data).
+- #6 unseeded RNG -- `make_events`/`calculate_lensing_rates` take `rng=None`
+  (default `np.random.default_rng()`); `np.random.*` -> `rng.*`.
+- #7 `tqdm.notebook` -> `tqdm.auto` (runs in a plain interpreter).
+- #8 magic numbers -- `N_TRISTAR`, `SURVEY_HOURS`, `DAILY_CADENCE_HOURS` named.
+- #11 unused imports + unused `resultDbs` -- removed.
+
+Deferred (still proposals -- structural / not requested yet):
+- #9 path handling (pathlib; `compare_opsims` hardcoded `baseline_v3.6_10yrs`).
+- #10 star imports + the rubin_sim import coupling.
+- #16 `setup.py` -> `pyproject.toml`.
+- remaining cosmetics (plots.py `_summary_` docstring stubs, mixed indentation).
+- #14/#15 are machine state (env repaired; data still absent), not code.
+
+The findings below are retained as the rationale of record.
+
+---
+
 ## Correctness
 
 ### 1. [BUG] MH proposal reads the previous source's coordinates, not the proposed one
