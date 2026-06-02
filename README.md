@@ -183,7 +183,10 @@ telescope means, roughly:
    test (the sibling `nsc-ml` repo is one such detector).
 
 These are design changes, not yet implemented; the simulation half can be reused
-today by supplying an appropriate catalog and parameters.
+today by supplying an appropriate catalog and parameters. A prior-art survey and
+a concrete proposal for a shared, telescope-agnostic survey-config layer (also
+intended for the sibling `nsc-ml` detector) is in
+[`docs/survey-config.md`](docs/survey-config.md).
 
 ## References
 
