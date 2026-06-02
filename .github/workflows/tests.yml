@@ -1,0 +1,41 @@
+name: tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # numpy<2 for LensCalcPy compatibility; enforce it as a constraint so
+          # transitive resolves do not pull numpy 2.
+          echo "numpy<2" > /tmp/constraints.txt
+          pip install -c /tmp/constraints.txt pandas scipy numba tqdm matplotlib seaborn astropy
+          # LensCalcPy from the repo (the PyPI 0.0.3 build has the einstein_rad bug).
+          pip install -c /tmp/constraints.txt "git+https://github.com/NolanSmyth/LensCalcPy.git"
+          pip install -c /tmp/constraints.txt -e rubinml
+
+      - name: Run tests
+        env:
+          CI: "true"   # skips the platform-specific exact MH golden (see test_parity.py)
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Quickstart smoke test
+        run: python examples/quickstart.py
+
+# rubin_sim is not installed here, so the MAF detection-metric integration test
+# self-skips (it needs rubin_sim + rs_download_data + an opsim baseline). CI
+# covers the simulation core: unit logic, the analytic LensCalcPy rate path, the
+# bug-#1 source-index regression, package import, and the example.
