@@ -261,12 +261,14 @@ commit (`fac1a16`) **not present on `NolanSmyth/LensCalcPy`**, plus uncommitted
 the deepest reproducibility blocker** -- no CI or external user can run the
 simulation without this fork.
 
-Fix (needs the fork owner): commit the LensCalcPy working-tree changes, push the
-fork to a public remote (e.g. `github.com/duncanwood/LensCalcPy`), then pin that
-commit in `requirements.txt` + `.github/workflows/tests.yml` and drop the
-`lenscalc_rate_available()` test skips. Until then CI runs only the public-
-reproducible subset (pure logic + packaging); the rate/MC tests + quickstart
-self-skip (see the CI run, `OK (skipped=14)`).
+RESOLVED 2026-06-02: the fork is published at
+`github.com/duncanwood/LensCalcPy` (branch `functional-refactor`, commit
+`3bc16f5`) and pinned in `requirements.txt` + `.github/workflows/tests.yml`, so
+CI installs a fork-compatible LensCalcPy. `lenscalc_rate_available()` then returns
+true and the rate/MC tests run in CI (the make_events exact golden stays
+CI-skipped for platform float-flip; rate goldens use rtol=1e-6 for
+cross-platform). The `lenscalc_rate_available()` guard is kept so the tests still
+degrade gracefully on a machine without the fork.
 
 ### 16. [ENV] Packaging
 `rubinml/setup.py` uses `distutils` (removed in Python 3.12) with `version='0.0'`

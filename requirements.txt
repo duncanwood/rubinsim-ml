@@ -10,9 +10,11 @@ scipy==1.13.1
 tqdm==4.66.4
 #
 # Analytic differential event-rate (NFW + Milky Way model).
-# Installed editable from the sibling repo ../LensCalcPy (a stale PyPI build of
-# 0.0.3 has an einstein_rad() signature bug; prefer the repo checkout).
-LensCalcPy==0.0.3
+# The project fork (added rate functions + a no-arg MilkyWayModel); the public
+# NolanSmyth HEAD has a different API and the PyPI 0.0.3 build has an
+# einstein_rad() bug. Pinned to a commit for reproducibility; locally Duncan
+# installs the ../LensCalcPy checkout editable (same branch: functional-refactor).
+LensCalcPy @ git+https://github.com/duncanwood/LensCalcPy.git@3bc16f5290b3837f811c9da119b1d3a04fe3f00a
 #
 # Rubin/LSST detection metric orchestration (rubinsim.py)
 # Installed editable from a rubin_sim checkout; pulls rubin_scheduler.

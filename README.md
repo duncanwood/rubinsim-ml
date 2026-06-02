@@ -64,25 +64,23 @@ breaks the pinned stack, so the in-place rpath fix is preferred here.)
 
 ### 2. LensCalcPy (analytic event rate)
 
-**This code depends on a *fork* of LensCalcPy, not the public package.** The rate
+This code depends on a *fork* of LensCalcPy, not the public package: the rate
 model uses functions added on top of
 [NolanSmyth/LensCalcPy](https://github.com/NolanSmyth/LensCalcPy) -- the `ds`
 argument to `einstein_rad`, the Jacobian in `differential_rate_integrand`,
 `differential_rate`, single-source event sampling -- and a `MilkyWayModel()` that
 takes no required arguments. The public NolanSmyth `HEAD` has a different
-`MilkyWayModel` API and the PyPI `0.0.3` build has an `einstein_rad()` bug, so
-neither runs this code's rate path.
+`MilkyWayModel` API and the PyPI `0.0.3` build has an `einstein_rad()` bug.
 
-Until the fork is published, install the project's local checkout editable:
+The fork is published at
+[duncanwood/LensCalcPy](https://github.com/duncanwood/LensCalcPy) (branch
+`functional-refactor`); `requirements.txt` pins the exact commit. Install it
+directly, or use a local editable checkout for development:
 
 ```bash
-pip install -e /path/to/LensCalcPy     # the fork with the added rate functions
+pip install "git+https://github.com/duncanwood/LensCalcPy.git@functional-refactor"
+# or:  pip install -e /path/to/LensCalcPy
 ```
-
-> **TODO (reproducibility):** publish the fork (e.g. `github.com/duncanwood/LensCalcPy`,
-> after committing its local changes) and pin it in `requirements.txt` and the CI
-> workflow. Until then, the analytic-rate tests and the quickstart self-skip off
-> this machine (see Tests).
 
 ### 3. rubin_sim (detection metric -- optional)
 

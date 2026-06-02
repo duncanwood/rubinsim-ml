@@ -69,15 +69,16 @@ class RateParity(unittest.TestCase):
         self.mw = ev.MilkyWayModel()
 
     def test_source_lensing_rate(self):
-        # rate_total integrates via scipy.quad; observed bit-identical across
-        # scipy 1.11/1.13, so rtol=1e-9 is a conservative cushion.
+        # rate_total integrates via scipy.quad; bit-identical across scipy
+        # 1.11/1.13 on one platform. rtol=1e-6 absorbs cross-platform (CI) libm
+        # differences while still catching any real change in the rate.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             for g in self.golden["rates"]:
                 ds = float(ev.kpc_from_mu0(g["mu0"]))
                 r = ev.source_lensing_rate(g["l"], g["b"], ds, self.mw,
                                            u_t=g["u_t"], mass=g["mass"])
-                np.testing.assert_allclose(float(r), g["rate_per_hour"], rtol=1e-9,
+                np.testing.assert_allclose(float(r), g["rate_per_hour"], rtol=1e-6,
                                            err_msg=f"rate at {g['l'],g['b'],g['mu0']}")
 
     def test_density_probes(self):
@@ -89,7 +90,7 @@ class RateParity(unittest.TestCase):
                 if g["density"] == 0.0:
                     self.assertEqual(float(d), 0.0)
                 else:
-                    np.testing.assert_allclose(float(d), g["density"], rtol=1e-9)
+                    np.testing.assert_allclose(float(d), g["density"], rtol=1e-6)
 
 
 if __name__ == "__main__":

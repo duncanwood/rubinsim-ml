@@ -31,8 +31,9 @@ jobs:
           # fastcore + emcee are runtime deps LensCalcPy imports but does not
           # declare in settings.ini, so install them explicitly.
           pip install -c /tmp/constraints.txt pandas scipy numba tqdm matplotlib seaborn astropy fastcore emcee pathos
-          # LensCalcPy from the repo (the PyPI 0.0.3 build has the einstein_rad bug).
-          pip install -c /tmp/constraints.txt --no-build-isolation "git+https://github.com/NolanSmyth/LensCalcPy.git"
+          # LensCalcPy: the project fork (added rate functions + no-arg
+          # MilkyWayModel); public NolanSmyth HEAD has a different API.
+          pip install -c /tmp/constraints.txt --no-build-isolation "git+https://github.com/duncanwood/LensCalcPy.git@3bc16f5290b3837f811c9da119b1d3a04fe3f00a"
           pip install -c /tmp/constraints.txt -e rubinml
 
       - name: Run tests
@@ -45,10 +46,6 @@ jobs:
         run: python -m unittest discover -s "$GITHUB_WORKSPACE/tests" -t "$GITHUB_WORKSPACE/tests" -p "test_*.py" -v
 
       - name: Quickstart smoke test
-        # The quickstart runs make_events, which needs the project LensCalcPy
-        # fork (see README). Non-blocking until that fork is published; it will
-        # pass once CI installs a fork-compatible LensCalcPy.
-        continue-on-error: true
         run: python examples/quickstart.py
 
 # rubin_sim is not installed here, so the MAF detection-metric integration test
