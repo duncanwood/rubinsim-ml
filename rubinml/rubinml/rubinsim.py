@@ -19,7 +19,8 @@ import rubin_sim.maf.db as db
 
 from . import events
 
-def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: str):
+def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: str,
+                            t_start=1., t_end=3652.):
   filters = [ col for col in events.columns if 'mag' in col ]
   opsim = os.path.basename(baseline_file).replace('.db','')
   print(f'running on {opsim}')
@@ -32,7 +33,6 @@ def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: st
   crossing_times = [[0, 30000]]
   seed = 42
   rng = np.random.default_rng(seed)
-  t_start, t_end = 1, 3652
   for crossing in crossing_times:
     key = f'{crossing[0]} to {crossing[1]}'
     bundle_rates = {}
@@ -50,6 +50,7 @@ def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: st
                                             info_label=f'Microlensing rate (1/hour)')
     bundles[key] = maf.MetricBundle(metric, slicer, None, run_name=opsim, 
                                             summary_metrics=summaryMetrics, 
+
                                             info_label=f'tE {crossing[0]}_{crossing[1]} days')
 
     # outDir = 'test_microlensing_dm_rubinsim_1sm_galplane'
@@ -57,12 +58,14 @@ def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: st
     g.run_all()
 
 def run_microlensing_metric_mult(events_list: list, sources: pd.DataFrame, 
-                                 baseline_file: str, outdir: str):
+                                 baseline_file: str, outdir: str,
+                                 constraint=None, metric_options={},
+                                 t_start=1., t_end=3652.):
   filters = [ col for col in sources.columns if 'mag' in col ]
   opsim = os.path.basename(baseline_file).replace('.db','')
   print(f'running on {opsim}')
 
-  metric = maf.MicrolensingMetric()
+  metric = maf.MicrolensingMetric(**metric_options)
   summaryMetrics = maf.batches.lightcurve_summary()
   bundles = {}
   resultDbs = {}
@@ -70,10 +73,10 @@ def run_microlensing_metric_mult(events_list: list, sources: pd.DataFrame,
   # crossing_times = [[0, 30000]]
   seed = 42
   rng = np.random.default_rng(seed)
-  t_start, t_end = 1, 3652
   for events_df, events_info in events_list:
+
     full_events_df = events.make_full_event_df(events_df, sources)
-    key = f'{events_info["pbhmass"]:.04f}sm'
+    key = f'{events_info["pbhmass"]:08.4e}sm_{constraint}'
     bundle_rates = {}
     slicer = slicers.UserPointsSlicer(full_events_df['ra'].array,
                                       full_events_df['dec'].array, 
@@ -86,21 +89,87 @@ def run_microlensing_metric_mult(events_list: list, sources: pd.DataFrame,
       filtername = f[0]
       slicer.slice_points["apparent_m_no_blend_{}".format(filtername)] = full_events_df[f].array
       slicer.slice_points["apparent_m_{}".format(filtername)] = full_events_df[f].array
-    bundle_rates['rates'] = maf.MetricBundle(metric, slicer, None, run_name=opsim,  
-                                            info_label=f'Microlensing rate (1/hour)')
-    bundles[key] = maf.MetricBundle(metric, slicer, None, run_name=opsim, 
+    # bundle_rates['rates'] = maf.MetricBundle(metric, slicer, None, run_name=opsim,  
+    #                                         info_label=f'Microlensing rate (1/hour)')
+    bundles[key] = maf.MetricBundle(metric, slicer, constraint=constraint, run_name=opsim, 
                                             summary_metrics=summaryMetrics, 
-                                            info_label=f'PBH mass {events_info["pbhmass"]:.04f}sm')
+                                            info_label=f'PBH mass {events_info["pbhmass"]:08.4e}sm_{constraint}')
 
     # outDir = 'test_microlensing_dm_rubinsim_1sm_galplane'
   g = maf.MetricBundleGroup(bundles, baseline_file, outdir)
   g.run_all()
 
   for events_df, events_info in events_list:
-    result_fname = f'{outdir}/{opsim}_{events_info["pbhmass"]:.04f}sm.pickle'
-    bundle = bundles[f'{events_info["pbhmass"]:.04f}sm']
+    result_fname = f'{outdir}/{opsim}_{events_info["pbhmass"]:08.4e}sm'
+    if constraint is not None:
+      result_fname += f'_{constraint}'
+    result_fname += '.pickle'
+    bundle = bundles[f'{events_info["pbhmass"]:08.4e}sm_{constraint}']
+    events_info['opsim'] = opsim
+    events_info['constraint'] = constraint
     with open(result_fname, 'wb') as f:
       pickle.dump((events_info, bundle.metric_values), f)
+
+def run_microlensing_metric_mult_Fisher_Npts_Nights(events_list: list, sources: pd.DataFrame, 
+                                 baseline_file: str, outdir: str,
+                                 constraint=None, metric_options={},
+                                 t_start=1., t_end=3652.):
+  filters = [ col for col in sources.columns if 'mag' in col ]
+  opsim = os.path.basename(baseline_file).replace('.db','')
+  print(f'running on {opsim}')
+
+  metric_Fisher = maf.MicrolensingMetric(metric_calc='Fisher', **metric_options)
+  metric_Npts = maf.MicrolensingMetric(metric_calc='Npts', **metric_options)
+  metric_Nights = maf.MicrolensingMetric(metric_calc='Nnights', **metric_options)
+  summaryMetrics = maf.batches.lightcurve_summary()
+  bundles = {}
+
+
+  # crossing_times = [[0, 30000]]
+  seed = 42
+  rng = np.random.default_rng(seed)
+  for events_df, events_info in events_list:
+
+    full_events_df = events.make_full_event_df(events_df, sources)
+    key = f'{events_info["pbhmass"]:08.4e}sm_{constraint}'
+
+    slicer = slicers.UserPointsSlicer(full_events_df['ra'].array,
+                                      full_events_df['dec'].array, 
+                                      lat_lon_deg=True, badval=0)
+    slicer.slice_points["crossing_time"]=full_events_df['crossing_time'].array/24
+    slicer.slice_points["impact_parameter"]=full_events_df['umin'].array
+    slicer.slice_points["peak_time"]= rng.uniform(low=t_start, high=t_end, 
+                                                  size=len(full_events_df))
+    for f in filters:
+      filtername = f[0]
+      slicer.slice_points["apparent_m_no_blend_{}".format(filtername)] = full_events_df[f].array
+      slicer.slice_points["apparent_m_{}".format(filtername)] = full_events_df[f].array
+    bundles[key+'_Fisher'] = maf.MetricBundle(metric_Fisher, slicer, constraint=constraint, run_name=opsim, 
+                                            summary_metrics=summaryMetrics, 
+                                            info_label=f'PBH mass {events_info["pbhmass"]:08.4e}sm_{constraint} Fisher')
+    bundles[key+'_Npts'] = maf.MetricBundle(metric_Npts, slicer, constraint=constraint, run_name=opsim, 
+                                            summary_metrics=summaryMetrics, 
+                                            info_label=f'PBH mass {events_info["pbhmass"]:08.4e}sm_{constraint} Npts')
+    bundles[key+'_Nights'] = maf.MetricBundle(metric_Nights, slicer, constraint=constraint, run_name=opsim, 
+                                            info_label=f'PBH mass {events_info["pbhmass"]:08.4e}sm_{constraint} Nights')
+
+    # outDir = 'test_microlensing_dm_rubinsim_1sm_galplane'
+  g = maf.MetricBundleGroup(bundles, baseline_file, outdir)
+  g.run_all()
+
+  for events_df, events_info in events_list:
+    result_fname = f'{outdir}/{opsim}_{events_info["pbhmass"]:08.4e}sm'
+    if constraint is not None:
+      result_fname += f'_{constraint}'
+    result_fname += '.pickle'
+    bundle_Fisher = bundles[f'{events_info["pbhmass"]:08.4e}sm_{constraint}_Fisher']
+    bundle_Npts = bundles[f'{events_info["pbhmass"]:08.4e}sm_{constraint}_Npts']
+    bundle_Nights = bundles[f'{events_info["pbhmass"]:08.4e}sm_{constraint}_Nights']
+    events_info['opsim'] = opsim
+    events_info['constraint'] = constraint
+    with open(result_fname, 'wb') as f:
+      pickle.dump((events_info, bundle_Fisher.metric_values,
+                   bundle_Npts.metric_values, bundle_Nights.metric_values), f)
 
 
 def make_metric_plots(bundles, outDir:str):
@@ -123,3 +192,17 @@ def make_metric_plots(bundles, outDir:str):
         ph.set_metric_bundles([bundles[k]])
         fig = ph.plot(plot_func=plotFunc, plot_dicts=plotDict)
         fig.close()
+
+def make_ndet_df(result_files: list):
+  ndetections = []
+  masses = []
+  opsims= []
+  for file in result_files:
+    with open(file, 'rb') as f:
+      events_info, detections = pickle.load(f)
+      masses.append(events_info['pbhmass'])
+      opsims.append(events_info['opsim'])
+      ndetections.append(np.sum(detections)/len(detections))
+  return pd.DataFrame({'ndet':np.array(ndetections),
+                       'pbhmass' : masses,
+                       'opsim' : opsims})

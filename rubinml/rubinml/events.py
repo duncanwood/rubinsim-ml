@@ -1,5 +1,8 @@
 # import os
+import time
+import warnings
 import datetime
+import glob
 from pathlib import Path
 import csv
 import pickle
@@ -41,8 +44,52 @@ def source_lensing_rate(l, b, ds, mw_model, u_t=5,
                         mass=1,tcad = 24, tobs = 24*365*10, \
                         epsabs = 1.49e-08, epsrel = 1.49e-08, 
                         efficiency=None) :
-    return LensCalcPy.pbh.rate_total(ds, mass, u_t, differential_rate_integrand_mw_maker(l, b, ds, u_t, mass, mw_model), tcad = tcad, tobs = tobs, \
-               epsabs =epsabs, epsrel = epsrel, efficiency=efficiency) 
+    return LensCalcPy.pbh.rate_total(ds, mass, u_t, 
+            differential_rate_integrand_mw_maker(l, b, ds, u_t, mass, mw_model), 
+            tcad = tcad, tobs = tobs, epsabs =epsabs, epsrel = epsrel, 
+            efficiency=efficiency) 
+
+def calculate_lensing_rates(sources: pd.DataFrame, mw: LensCalcPy.galaxy.Galaxy, 
+                            pbhmass, outdir: str, n_sources=None, u_t=5, write_csv=False):
+   
+    rates_info = {'sources_checksum' : pd.util.hash_pandas_object(sources).sum(),
+                  'sources_len'  : sources.shape[0],
+                  'pbhmass'      : pbhmass,
+                  'n_sources'    : n_sources,
+                  'u_t'          : u_t}
+
+    if write_csv:
+        rates_file = f'{outdir}/rates_ml_rates_{int(np.ceil(time.time()))}_ut-{u_t}_{pbhmass:.02e}sm.csv'
+    else:
+        rates_file = f'{outdir}/rates_ml_rates_{int(np.ceil(time.time()))}_ut-{u_t}_m-{pbhmass:.02e}sm.pickle'
+    basepath = Path(outdir)
+    basepath.mkdir(parents=True, exist_ok=True)
+    rates = {}
+
+    if n_sources is None:
+        n_sources = sources.shape[0]
+    else:
+        n_sources = min(sources.shape[0], n_sources)
+    if write_csv:
+        with open(rates_file, 'x') as f:
+            writer = csv.writer(f)
+            writer.writerow(("l","b","mu0","ML rate (1/hour)"))
+    source_arr = sources[['gall', 'galb', 'mu0']].to_numpy()
+    indices = np.random.randint(sources.shape[0], size=n_sources)
+    for i in tqdm(indices,smoothing=0):
+        l,b,mu0 = source_arr[i]
+        ds = kpc_from_mu0(mu0)
+        # print(ds)
+        with warnings.catch_warnings(action="ignore"):
+            rates[i] = source_lensing_rate(l, b, ds, mw, u_t=u_t, mass=pbhmass)
+        if write_csv:
+            with open(rates_file, 'a') as f:
+                writer = csv.writer(f)
+                writer.writerow((l,b,mu0,rates[i]))
+    if not write_csv:
+        with open(rates_file, 'wb') as f:
+            pickle.dump((rates, rates_info), f)
+    return rates
 
 def load_rates_from_file(old_rates_file):
 
@@ -58,6 +105,9 @@ def load_rates_from_file(old_rates_file):
 
 def rates_to_rubin_counts(rates, n_tristar=11_433_322_690):
     return round(sum(rates.values())*n_tristar/len(rates.values())*24*365*10)
+
+def log_rates_to_rubin_counts(rates: pd.DataFrame, n_tristar=11_433_322_690):
+    return round(sum(np.rates.values())*n_tristar/len(rates.values())*24*365*10)
 
 def rubin_counts_from_rates_file(file: str): 
     return rates_to_rubin_counts(load_rates_from_file(file))
@@ -278,9 +328,8 @@ def make_events(
     return event_df
 
 def make_full_event_df(event_df: pd.DataFrame, source_df: pd.DataFrame):
-    cols=['ra','dec', 'gall', 'galb', 'umag', 'gmag', 
-          'rmag', 'imag', 'zmag', 'ymag','mu0']
-    event_source_df = source_df.iloc[event_df['source_index']][cols]
-    event_source_df.reset_index(inplace=True)
-    return event_df.merge(event_source_df, how='inner', 
-                          left_index=True, right_index=True)
+    cols=['ra','dec',  'umag', 'gmag', 
+          'rmag', 'imag', 'zmag', 'ymag']
+    sub_sources = source_df[cols]
+    return event_df.merge(sub_sources, how='inner', 
+                          left_on='source_index', right_index=True)

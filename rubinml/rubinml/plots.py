@@ -1,11 +1,15 @@
 # from . import events
 import os
+import time
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.cm import ScalarMappable
 import seaborn as sns
+
+from . import rubinsim
 
 single_exp_m5 = {
     'u':23.8, 
@@ -181,6 +185,7 @@ def make_event_plots(df: pd.DataFrame, outdir=None, name=None):
       outdir (str): _description_
       name (str): _description_
   """  
+  os.makedirs(outdir, exist_ok=True)
   p = (df, outdir, name)
   dl_hist(*p)
   umin_hist(*p)
@@ -210,7 +215,11 @@ def bin_func(full_event_df: pd.DataFrame, col, bins, func, *args):
         bin_results.append(func(events, *args))
     return bin_results
 def mean_of_col(events, meancol):
-    return events[meancol].to_numpy().mean()
+    col = events[meancol].to_numpy()
+    if col.shape[0] == 0:
+      return 0.
+    else:
+      return events[meancol].to_numpy().mean()
 def std_of_col(events, meancol):
     return events[meancol].to_numpy().std()
 def perc_of_col(events, meancol, percentiles):
@@ -306,3 +315,37 @@ def make_all_plots(df: pd.DataFrame, outdir: str, name: str):
   plt.close('all')
 
 
+
+def compare_opsims(result_files: list, outdir=None, log=False):
+
+  if outdir is None:
+    outdir = '/'.join(result_files[0].split('/')[:-1])+'/plots'
+    os.makedirs(outdir, exist_ok=True)
+  det_df = rubinsim.make_ndet_df(result_files)
+
+  det_pivot=det_df.pivot(index="opsim", columns="pbhmass", values="ndet")
+  fig = plt.figure(figsize=(10,6))
+
+  sns.heatmap(np.log10(det_pivot),fmt='.1e')
+  plt.title('Absolute detection efficiency of cadence strategies by PBH mass')
+  # plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.2e'))
+  plt.gca().set_xticks(ticks=plt.gca().get_xticks(),
+        labels=[f'{x:.2e}' for x in sorted(det_df['pbhmass'].unique())])
+  plt.xlabel('PBH Mass (Solar masses)')
+  plt.tight_layout()
+  plt.savefig(outdir+f'/cadence-pbhmass-{int(time.time())}.pdf')
+
+  norm_det_df = det_pivot/det_pivot.loc['baseline_v3.6_10yrs']
+  if log:
+    norm_det_df = np.log10(norm_det_df)
+  fig.clear()
+  plt.figure(figsize=(10,6))
+  sns.heatmap(norm_det_df)
+  plt.title('Detection efficiency of cadence strategies by PBH mass, compared to baseline')
+  plt.gca().set_xticks(ticks=plt.gca().get_xticks(),
+    labels=[f'{x:.2e}' for x in sorted(det_df['pbhmass'].unique())])
+
+  plt.xlabel('PBH Mass (Solar masses)')
+  plt.tight_layout()
+  plt.savefig(outdir+f'/cadence-pbhmass-norm-{int(time.time())}.pdf')
+  plt.clf()
