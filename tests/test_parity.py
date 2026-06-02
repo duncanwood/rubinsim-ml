@@ -18,7 +18,6 @@ ev = H.load_events()
 
 def _run_make_events():
     sources = H.build_sources()
-    np.random.seed(H.SEED)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         # outfile path is irrelevant to the returned frame; use a temp sink
@@ -26,7 +25,7 @@ def _run_make_events():
         fd, path = tempfile.mkstemp(suffix=".pkl")
         os.close(fd)
         try:
-            return ev.make_events(sources, path, **H.MAKE_EVENTS_PARAMS)
+            return ev.make_events(sources, path, rng=H.seeded_rng(), **H.MAKE_EVENTS_PARAMS)
         finally:
             os.unlink(path)
 

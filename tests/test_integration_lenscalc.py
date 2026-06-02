@@ -46,14 +46,13 @@ class LensCalcRatePath(unittest.TestCase):
 class MetropolisHastingsEndToEnd(unittest.TestCase):
     def test_real_make_events_invariants(self):
         sources = H.build_sources()
-        np.random.seed(H.SEED)
         import tempfile, os
         fd, path = tempfile.mkstemp(suffix=".pkl")
         os.close(fd)
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                df = ev.make_events(sources, path, **H.MAKE_EVENTS_PARAMS)
+                df = ev.make_events(sources, path, rng=H.seeded_rng(), **H.MAKE_EVENTS_PARAMS)
         finally:
             os.unlink(path)
 

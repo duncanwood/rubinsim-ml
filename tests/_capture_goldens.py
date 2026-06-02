@@ -28,11 +28,10 @@ def main():
     sources.to_csv(H.FIXTURES / "sources_small.csv", index=False)
 
     # --- make_events seeded golden -------------------------------------------
-    np.random.seed(H.SEED)
     out_pkl = str(H.GOLDEN / "_scratch_make_events.pkl")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        df = ev.make_events(sources, out_pkl, **H.MAKE_EVENTS_PARAMS)
+        df = ev.make_events(sources, out_pkl, rng=H.seeded_rng(), **H.MAKE_EVENTS_PARAMS)
     Path(out_pkl).unlink(missing_ok=True)
     df.to_csv(H.GOLDEN / "make_events_seed0.csv", index=False)
     (H.GOLDEN / "make_events_params.json").write_text(json.dumps(

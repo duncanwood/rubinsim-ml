@@ -1,27 +1,26 @@
 """Shared test harness for the rubinml audit suite.
 
 Loads rubinml.events as a standalone module (bypassing the package __init__,
-which pulls in rubin_sim via `from .rubinsim import *`), installs a behavior-
-preserving tqdm shim, and provides the canonical small source set used by the
-golden / parity tests.
+which pulls in rubin_sim via `from .rubinsim import *`) and provides the
+canonical small source set used by the golden / parity tests.
 
-Design notes (all of this lives in the harness, NOT the library):
-  - Seeding: the legacy numpy RNG inside make_events is unseeded. The tests seed
-    it (np.random.seed(0)) for deterministic goldens.
-  - tqdm shim: events.py does `from tqdm.notebook import tqdm`, which raises at
-    call time outside a Jupyter+ipywidgets session. The shim is a passthrough
-    that only wraps iteration; it changes no computed value or RNG draw.
+Design notes:
+  - Reproducibility: make_events takes an injected rng; tests pass
+    seeded_rng() = np.random.default_rng(SEED) for deterministic goldens.
+  - tqdm: events.py uses tqdm.auto (works in a plain interpreter). Progress
+    bars are silenced here via TQDM_DISABLE to keep test output clean.
   - LensCalcPy: a stale PyPI build of 0.0.3 has an einstein_rad() signature bug
     (pbh.py calls einstein_rad(dl, mass), missing ds) that breaks the rate path
     under numba. The editable repo checkout at ../LensCalcPy is correct, so we
     prepend it to sys.path when present.
-See AUDIT.md for the library-side recommendations these shims stand in for.
 """
 
 import importlib.util
+import os
 import sys
-import types
 from pathlib import Path
+
+os.environ.setdefault("TQDM_DISABLE", "1")  # silence progress bars in tests
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent                                  # .../rubin-sim-ml
@@ -35,19 +34,8 @@ if (_LCP / "LensCalcPy" / "__init__.py").exists():
     sys.path.insert(0, str(_LCP))
 
 
-def install_tqdm_shim():
-    if isinstance(sys.modules.get("tqdm.notebook"), types.ModuleType) and \
-            getattr(sys.modules["tqdm.notebook"], "_rubinml_shim", False):
-        return
-    shim = types.ModuleType("tqdm.notebook")
-    shim._rubinml_shim = True
-    shim.tqdm = lambda iterable=None, *a, **k: (iterable if iterable is not None else [])
-    sys.modules["tqdm.notebook"] = shim
-
-
 def load_events():
     """Import rubinml/rubinml/events.py as a standalone module."""
-    install_tqdm_shim()
     spec = importlib.util.spec_from_file_location("rubinml_events", str(EVENTS_PY))
     mod = importlib.util.module_from_spec(spec)
     sys.modules["rubinml_events"] = mod
@@ -93,6 +81,12 @@ MAKE_EVENTS_PARAMS = dict(
     ntoss=10,
 )
 SEED = 0
+
+
+def seeded_rng():
+    """Deterministic Generator for goldens/parity (replaces np.random.seed)."""
+    import numpy as np
+    return np.random.default_rng(SEED)
 
 # (l, b, mu0) probes for the rate goldens. ds = kpc_from_mu0(mu0).
 RATE_PROBES = [

@@ -1,7 +1,6 @@
 import time
 import warnings
 import datetime
-import glob
 from pathlib import Path
 import csv
 import pickle
@@ -10,7 +9,7 @@ import numpy as np
 import pandas as pd
 from numba import njit
 
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 
 from LensCalcPy.galaxy import MilkyWayModel
 import LensCalcPy.pbh
@@ -24,6 +23,11 @@ import LensCalcPy.pbh
 # the source catalog. Units: lens/source distances dl, ds in kpc; mu0 a
 # distance modulus; crossing_time in hours; u_t the threshold impact parameter
 # (in Einstein radii) bounding what counts as a detectable event.
+
+# Survey-scale constants (Rubin/LSST 10-year baseline).
+N_TRISTAR = 11_433_322_690      # TRIStar source count; scales a mean per-source rate to the full population
+SURVEY_HOURS = 24 * 365 * 10    # hours in the 10-year survey
+DAILY_CADENCE_HOURS = 24.0      # nominal nightly cadence; the short-crossing-time proposal cutoff
 
 @njit
 def wrap_degrees(x):
@@ -48,7 +52,7 @@ def differential_rate_integrand_mw_maker(l, b, ds, u_t, mass, mw_model,
     return differential_rate_integrand_mw
 
 def source_lensing_rate(l, b, ds, mw_model, u_t=5, 
-                        mass=1,tcad = 24, tobs = 24*365*10, \
+                        mass=1,tcad = 24, tobs = SURVEY_HOURS, \
                         epsabs = 1.49e-08, epsrel = 1.49e-08, 
                         efficiency=None) :
     return LensCalcPy.pbh.rate_total(ds, mass, u_t, 
@@ -57,8 +61,11 @@ def source_lensing_rate(l, b, ds, mw_model, u_t=5,
             efficiency=efficiency) 
 
 def calculate_lensing_rates(sources: pd.DataFrame, mw: LensCalcPy.galaxy.Galaxy, 
-                            pbhmass, outdir: str, n_sources=None, u_t=5, write_csv=False):
+                            pbhmass, outdir: str, n_sources=None, u_t=5, write_csv=False,
+                            rng=None):
    
+    if rng is None:
+        rng = np.random.default_rng()
     rates_info = {'sources_checksum' : pd.util.hash_pandas_object(sources).sum(),
                   'sources_len'  : sources.shape[0],
                   'pbhmass'      : pbhmass,
@@ -82,7 +89,7 @@ def calculate_lensing_rates(sources: pd.DataFrame, mw: LensCalcPy.galaxy.Galaxy,
             writer = csv.writer(f)
             writer.writerow(("l","b","mu0","ML rate (1/hour)"))
     source_arr = sources[['gall', 'galb', 'mu0']].to_numpy()
-    indices = np.random.randint(sources.shape[0], size=n_sources)
+    indices = rng.integers(sources.shape[0], size=n_sources)
     for i in tqdm(indices,smoothing=0):
         l,b,mu0 = source_arr[i]
         ds = kpc_from_mu0(mu0)
@@ -109,8 +116,8 @@ def load_rates_from_file(old_rates_file):
     
     return rates
 
-def rates_to_rubin_counts(rates, n_tristar=11_433_322_690):
-    return round(sum(rates.values())*n_tristar/len(rates.values())*24*365*10)
+def rates_to_rubin_counts(rates, n_tristar=N_TRISTAR):
+    return round(sum(rates.values())*n_tristar/len(rates.values())*SURVEY_HOURS)
 
 def rubin_counts_from_rates_file(file: str): 
     return rates_to_rubin_counts(load_rates_from_file(file))
@@ -196,16 +203,17 @@ def make_events(
     outfile,
     n_survey_events: int,
     u_t = 5.,
-    t_min = 24.,
-    t_max = 24.*365*10,
+    t_min = DAILY_CADENCE_HOURS,
+    t_max = SURVEY_HOURS,
     pbhmass = 1.,
     ntoss = 20000,
-    write_progress = False):
-    """_summary_
+    write_progress = False,
+    rng = None):
+    """Metropolis-Hastings sample of microlensing events for a source catalog.
 
     Args:
-        sources (_type_): _description_
-        outfile (_type_): _description_
+        sources (pd.DataFrame): source catalog with gall, galb, mu0 columns.
+        outfile (str): path to pickle the (event_df, events_info) result.
         n_survey_events (int): Number of events to generate.
         u_t (float, optional): _description_. Defaults to 5.
         t_min (float, optional): Minimum crossing time cutoff (hours). Defaults to 24.
@@ -214,7 +222,11 @@ def make_events(
         ntoss (int, optional): Number of initial samples to discard. Defaults to 20000.
         write_progress (bool, optional): Write every sample immediately 
                                          to a csv upon generation. Defaults to False.
+        rng (np.random.Generator, optional): RNG for reproducibility; defaults
+                                         to a fresh np.random.default_rng().
     """
+    if rng is None:
+        rng = np.random.default_rng()
 
     nsteps=round(n_survey_events)
     headers=['source_index', 'dl', 'umin', 'crossing_time', 'lograte']
@@ -252,10 +264,10 @@ def make_events(
 
     p0 = []
     for i in range(1):
-        source_index = np.random.randint(0,len(sources))
+        source_index = rng.integers(0,len(sources))
         l,b,mu0 = sources.iloc[source_index][['gall','galb','mu0']]
         ds = kpc_from_mu0(mu0)
-        p0.append([source_index, l, b, mu0, ds*np.random.random(), 1, 100])
+        p0.append([source_index, l, b, mu0, ds*rng.random(), 1, 100])
 
     mu0 = sources.iloc[p0[0][0]]['mu0']
     ds = kpc_from_mu0(mu0)
@@ -284,12 +296,12 @@ def make_events(
         if i == ntoss: # clear the events after generating enough to throw out
             samples = []
         while True:
-            new_source_index = np.random.randint(sources.shape[0])
+            new_source_index = rng.integers(sources.shape[0])
             new_l,new_b,new_mu0 = source_arr[new_source_index]
             ds = kpc_from_mu0(new_mu0)
-            new_dl = np.random.random()*ds # put lens uniformly random between earth and source
-            new_umin = np.random.random()*u_t # limit to photometric repeatability limit for dim sources
-            new_crossing_time = t_min * np.power(t_max/t_min, np.random.random()) # limit between daily cadence and full survey length
+            new_dl = rng.random()*ds # put lens uniformly random between earth and source
+            new_umin = rng.random()*u_t # limit to photometric repeatability limit for dim sources
+            new_crossing_time = t_min * np.power(t_max/t_min, rng.random()) # limit between daily cadence and full survey length
             new_event=[new_source_index, new_l, new_b, new_mu0, 
                        new_dl, new_umin, new_crossing_time]
             new_lograte =  sample_density_single_source_log(new_event,
@@ -300,7 +312,7 @@ def make_events(
                     + np.log(ds) \
                     + np.log(new_crossing_time)
             n_proposed += 1
-            if new_lograte > lograte or np.exp(new_lograte - lograte) > np.random.random():
+            if new_lograte > lograte or np.exp(new_lograte - lograte) > rng.random():
                 samples.append(new_event+[new_lograte])
                 if write_progress and (i >= ntoss): # only write values you're not going to toss
                     with open(events_file, 'a') as f:

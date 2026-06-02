@@ -1,21 +1,11 @@
 import os
-import datetime
-from pathlib import Path
-import csv
 import pickle
 
 import numpy as np
 import pandas as pd
-from numba import njit
-
-from tqdm.notebook import tqdm
 
 import rubin_sim.maf as maf
-import rubin_sim.utils as rsUtils
-from rubin_sim.data import get_baseline
-
 import rubin_sim.maf.slicers as slicers
-import rubin_sim.maf.db as db
 
 from . import events
 
@@ -30,7 +20,6 @@ def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: st
   metric = maf.MicrolensingMetric()
   summaryMetrics = maf.batches.lightcurve_summary()
   bundles = {}
-  resultDbs = {}
 
   crossing_times = [[0, 30000]]
   seed = 42
@@ -69,7 +58,6 @@ def run_microlensing_metric_mult(events_list: list, sources: pd.DataFrame,
   metric = maf.MicrolensingMetric(**metric_options)
   summaryMetrics = maf.batches.lightcurve_summary()
   bundles = {}
-  resultDbs = {}
 
   seed = 42
   rng = np.random.default_rng(seed)
