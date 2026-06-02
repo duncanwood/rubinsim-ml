@@ -1,7 +1,9 @@
 # Survey configuration -- design note
 
-Status: **proposal** (2026-06-02). Prior art researched; no code written yet,
-pending the "where does it live" decision at the end. Targets both this repo
+Status: **spec** (2026-06-02). Prior art researched; reconciled with nsc-ml's
+existing `LightcurveSchema` into a shared `Survey` object (see "Unifying with
+nsc-ml" + "Build plan"). No code yet -- gated on the location decision (yours)
+and nsc-ml's `refactor/nscml-proposals` landing. Targets both this repo
 (rubin-sim-ml: event sim + Rubin/LSST metric) and the sibling **nsc-ml**
 (multi-band time-series detection), which today both hardcode LSST `ugrizy`
 bands and single-visit depths.
@@ -106,6 +108,85 @@ Where should the shared config live?
 2. A **vendored module** copied into each repo (no packaging; manual sync).
 3. **Start here in rubin-sim-ml**, designed location-agnostic, **extract** to a
    shared package once it stabilizes (lowest friction now).
+
+## Unifying with nsc-ml's LightcurveSchema (the "same codebase")
+
+nsc-ml's parallel portability work (branch `refactor/nscml-proposals`) already
+ships a standalone `LightcurveSchema` (`nscml/schema.py`) + `normalize()` +
+per-survey adapters (`nscml/surveys/`). That is the *data-ingestion* half of a
+survey (column names, band, mag/flux `space`); the `SurveyConfig` above is the
+*observing-design* half (bands, m5 depths, cadence, footprint). They are
+complementary and overlap on exactly one axis -- the survey's **bands**. There is
+no code dependency between the two repos today (confirmed); LensCalcPy is
+rubin-sim-ml's only external coupling.
+
+The shared object is a **Survey**, defined once per telescope, carrying both
+halves so the band set is written exactly once:
+
+```python
+# shared layer (location TBD -- see the decision above)
+@dataclass(frozen=True)
+class Band:
+    name: str
+    m5_single_visit: float | None = None   # 5-sigma AB depth (observing/sim side)
+    speclite_name: str | None = None       # filter curve -> REUSE speclite
+    zp: float | None = None
+    zpsys: str = "ab"
+    gain: float = 1.0
+
+@dataclass(frozen=True)
+class Survey:
+    name: str
+    bands: dict[str, Band]                    # the single source of truth for bands
+    footprint: "Footprint | None" = None      # simulation only
+    cadence_days: "dict[str, float] | None" = None
+    visits: "astropy.table.Table | None" = None   # opsim-shaped rows (simulation)
+    schema: "LightcurveSchema | None" = None  # nsc-ml's contract, for detection ingest
+
+# surveys/lsst.py  -- written once, imported by BOTH repos
+LSST = Survey(
+    name="lsst",
+    bands={b: Band(b, m5_single_visit=m5, speclite_name=f"lsst2023-{b}")
+           for b, m5 in {"u": 23.8, "g": 24.5, "r": 24.0,
+                         "i": 23.4, "z": 22.8, "y": 22.0}.items()},   # m5: cite SMTN-002
+    footprint=Footprint(region="wfd"),
+    schema=LightcurveSchema(id="objectId", time="midpointMjdTai", band="band",
+                            measurement="psfFlux", error="psfFluxErr", space="flux"),
+)
+```
+
+Integration points (neither repo's domain models change -- events and light
+curves stay put; only the *survey definition* is shared):
+
+- **rubin-sim-ml** (simulation) reads `Survey.bands[*].m5_single_visit`,
+  `.footprint`, `.cadence_days`/`.visits`. Concretely `plots.single_exp_m5` and
+  the hardcoded `ugrizy` list become `Survey.bands`; `make_events`' `u_t` /
+  `t_min` / `t_max` get tuned per survey (already named constants here).
+- **nsc-ml** (detection) reads `Survey.schema` -> `normalize(df, survey.schema)`;
+  its `surveys/nsc.py` literals become `Survey(name="nsc", bands=..., schema=NSC_SCHEMA)`.
+
+Where it bites: the **mag-vs-flux** decision still pending in nsc-ml
+(`PORTABILITY.md` sec. 2) is exactly `LightcurveSchema.space`. `Band.m5` stays a
+survey-design AB depth; flux-space surveys (LSST) carry it through `space="flux"`
+plus the standard `m5 -> sigma/skynoise` conversion. The detector's space toggle
+lives in `schema.space`, not in `Band`.
+
+## Build plan (gated)
+
+1. **Now (unblocked):** this spec. No code yet -- (a) the location is your call
+   and (b) nsc-ml's `schema.py`/`surveys/` are on an unmerged branch.
+2. **When nsc-ml lands** (`refactor/nscml-proposals` merged) **and a location is
+   chosen:** lift nsc-ml's `LightcurveSchema`/`normalize` verbatim into the shared
+   home, add `Band`/`Footprint`/`Survey`, write `surveys/lsst.py` + `surveys/nsc.py`
+   with cited m5 depths (Seed data above).
+3. **Then:** rubin-sim-ml swaps `single_exp_m5`/hardcoded bands for `Survey.bands`;
+   nsc-ml swaps its `surveys/nsc.py` literals for the shared `Survey`. Each swap
+   rides behind its own parity tests.
+
+Recommended location (refining the decision above, now that nsc-ml already wrote
+the schema half): **a small shared package** -- promote nsc-ml's already
+dependency-free `schema.py` into it rather than vendoring or making one repo
+depend on the other's detection stack.
 
 ## References
 
