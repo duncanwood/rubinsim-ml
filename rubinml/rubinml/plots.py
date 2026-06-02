@@ -8,8 +8,6 @@ import matplotlib as mpl
 from matplotlib.cm import ScalarMappable
 import seaborn as sns
 
-from . import rubinsim
-
 # 5-sigma single-visit limiting magnitudes per LSST band (AB).
 single_exp_m5 = {
     'u':23.8, 
@@ -315,11 +313,12 @@ def make_all_plots(df: pd.DataFrame, outdir: str, name: str):
 
 
 
-def compare_opsims(result_files: list, outdir=None, log=False):
+def compare_opsims(result_files: list, outdir=None, log=False, baseline_key='baseline_v3.6_10yrs'):
 
   if outdir is None:
     outdir = '/'.join(result_files[0].split('/')[:-1])+'/plots'
     os.makedirs(outdir, exist_ok=True)
+  from . import rubinsim  # lazy: only this plot needs rubin_sim
   det_df = rubinsim.make_ndet_df(result_files)
 
   det_pivot=det_df.pivot(index="opsim", columns="pbhmass", values="ndet")
@@ -333,7 +332,7 @@ def compare_opsims(result_files: list, outdir=None, log=False):
   plt.tight_layout()
   plt.savefig(outdir+f'/cadence-pbhmass-{int(time.time())}.pdf')
 
-  norm_det_df = det_pivot/det_pivot.loc['baseline_v3.6_10yrs']
+  norm_det_df = det_pivot/det_pivot.loc[baseline_key]
   if log:
     norm_det_df = np.log10(norm_det_df)
   fig.clear()

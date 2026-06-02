@@ -37,11 +37,14 @@ Applied (suite parity-green; goldens recaptured where behavior changed):
 - #7 `tqdm.notebook` -> `tqdm.auto` (runs in a plain interpreter).
 - #8 magic numbers -- `N_TRISTAR`, `SURVEY_HOURS`, `DAILY_CADENCE_HOURS` named.
 - #11 unused imports + unused `resultDbs` -- removed.
+- #9 path handling -- `make_events` uses `Path(outfile).parent`; `compare_opsims`
+  takes a `baseline_key` parameter.
+- #10 star imports removed -- `__init__` exports explicit names; `plots` and
+  `rubinsim` import optionally, so the MC core imports without matplotlib/seaborn
+  or rubin_sim (verified both ways).
+- #16 distutils `setup.py` replaced by `pyproject.toml`.
 
-Deferred (still proposals -- structural / not requested yet):
-- #9 path handling (pathlib; `compare_opsims` hardcoded `baseline_v3.6_10yrs`).
-- #10 star imports + the rubin_sim import coupling.
-- #16 `setup.py` -> `pyproject.toml`.
+Deferred (still proposals):
 - remaining cosmetics (plots.py `_summary_` docstring stubs, mixed indentation).
 - #14/#15 are machine state (env repaired; data still absent), not code.
 

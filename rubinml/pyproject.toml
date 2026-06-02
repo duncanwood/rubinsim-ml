@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rubinml"
+version = "0.1.0"
+description = "Monte-Carlo microlensing event simulation and Rubin/LSST detection metrics"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pandas",
+    "numba",
+    "scipy",
+    "tqdm",
+    "matplotlib",
+    "seaborn",
+]
+# LensCalcPy (analytic rate) and rubin_sim (MAF detection metric) are installed
+# editable from sibling checkouts -- a stale PyPI LensCalcPy 0.0.3 has an
+# einstein_rad() bug and rubin_sim is a dev build. See requirements.txt for the
+# exact pins used on the reference machine.
+
+[tool.setuptools]
+packages = ["rubinml"]

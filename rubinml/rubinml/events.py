@@ -252,9 +252,7 @@ def make_events(
     }
 
     events_file = outfile
-    basedir = '/'.join(events_file.split("/")[:-1])
-    basepath = Path(basedir)
-    basepath.mkdir(parents=True, exist_ok=True)
+    Path(events_file).parent.mkdir(parents=True, exist_ok=True)
     with open(events_file, 'w') as f:
         f.write(metadatastr)
         f.write(','.join(headers))
