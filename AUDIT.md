@@ -249,6 +249,25 @@ correct `einstein_rad(dl, mass, ds)`; prefer it. The test harness prepends it.
   is not on this machine; tests use a small synthetic stand-in
   (`tests/fixtures/sources_small.csv`). Reading the real catalog needs `pyarrow`.
 
+### 17. [ENV/REPRO] The analytic-rate path depends on a private LensCalcPy fork
+`events.py`'s rate model (`source_lensing_rate`, `sample_density_single_source`,
+the `make_events` MC) calls LensCalcPy functions that exist only on the project's
+local fork -- the `ds` arg to `einstein_rad`, the Jacobian in
+`differential_rate_integrand`, `differential_rate`, single-source sampling -- and
+a `MilkyWayModel()` with no required args. The local LensCalcPy checkout is at a
+commit (`fac1a16`) **not present on `NolanSmyth/LensCalcPy`**, plus uncommitted
+`pbh.py` changes. The public package has a different `MilkyWayModel` API (and an
+`einstein_rad` bug in 0.0.3), so the rate path does not run against it. **This is
+the deepest reproducibility blocker** -- no CI or external user can run the
+simulation without this fork.
+
+Fix (needs the fork owner): commit the LensCalcPy working-tree changes, push the
+fork to a public remote (e.g. `github.com/duncanwood/LensCalcPy`), then pin that
+commit in `requirements.txt` + `.github/workflows/tests.yml` and drop the
+`lenscalc_rate_available()` test skips. Until then CI runs only the public-
+reproducible subset (pure logic + packaging); the rate/MC tests + quickstart
+self-skip (see the CI run, `OK (skipped=14)`).
+
 ### 16. [ENV] Packaging
 `rubinml/setup.py` uses `distutils` (removed in Python 3.12) with `version='0.0'`
 and `py_modules=['rubinml', ...]` (the code is a package, not top-level modules).

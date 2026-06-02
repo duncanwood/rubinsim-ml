@@ -64,13 +64,25 @@ breaks the pinned stack, so the in-place rpath fix is preferred here.)
 
 ### 2. LensCalcPy (analytic event rate)
 
-Install editable from a checkout; the PyPI 0.0.3 build has an `einstein_rad()`
-signature bug that breaks the rate path under numba.
+**This code depends on a *fork* of LensCalcPy, not the public package.** The rate
+model uses functions added on top of
+[NolanSmyth/LensCalcPy](https://github.com/NolanSmyth/LensCalcPy) -- the `ds`
+argument to `einstein_rad`, the Jacobian in `differential_rate_integrand`,
+`differential_rate`, single-source event sampling -- and a `MilkyWayModel()` that
+takes no required arguments. The public NolanSmyth `HEAD` has a different
+`MilkyWayModel` API and the PyPI `0.0.3` build has an `einstein_rad()` bug, so
+neither runs this code's rate path.
+
+Until the fork is published, install the project's local checkout editable:
 
 ```bash
-git clone https://github.com/NolanSmyth/LensCalcPy
-pip install -e LensCalcPy
+pip install -e /path/to/LensCalcPy     # the fork with the added rate functions
 ```
+
+> **TODO (reproducibility):** publish the fork (e.g. `github.com/duncanwood/LensCalcPy`,
+> after committing its local changes) and pin it in `requirements.txt` and the CI
+> workflow. Until then, the analytic-rate tests and the quickstart self-skip off
+> this machine (see Tests).
 
 ### 3. rubin_sim (detection metric -- optional)
 
@@ -132,9 +144,11 @@ rubinml.rubinsim.run_microlensing_metric(full, "baseline_v3.4_10yrs.db", "out/")
 python -m unittest discover -s tests        # 28 tests; pytest also works
 ```
 
-Unit + exact-seeded parity (`tests/golden/`) + integration. The real LensCalcPy
-rate path runs; the rubin_sim MAF integration self-skips with a reason if the
-reference data / opsim baseline are absent.
+Unit + exact-seeded parity (`tests/golden/`) + integration. Tests that need the
+LensCalcPy fork (the analytic-rate and MC paths) self-skip when it is absent, and
+the rubin_sim MAF integration self-skips without the reference data / opsim
+baseline. On a fully-configured machine all run; in CI the public-reproducible
+subset (pure logic + packaging) runs green and the rest skip.
 
 ## Reproducing the original (dissertation) results
 
