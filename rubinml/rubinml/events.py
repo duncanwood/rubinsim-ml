@@ -1,4 +1,3 @@
-# import os
 import time
 import warnings
 import datetime
@@ -16,6 +15,16 @@ from tqdm.notebook import tqdm
 from LensCalcPy.galaxy import MilkyWayModel
 import LensCalcPy.pbh
 
+# Monte-Carlo (Metropolis-Hastings) sampler for microlensing events and their
+# Rubin/LSST detectability. The target density is the analytic differential
+# event rate of an NFW dark-matter (e.g. PBH) lens population folded through a
+# Milky Way model (LensCalcPy); see the dissertation for the rate derivation.
+# This is the laptop-scale replacement for the cluster-scale PopSyCLE run:
+# sampling cost is linear in the number of proposed events, not quadratic in
+# the source catalog. Units: lens/source distances dl, ds in kpc; mu0 a
+# distance modulus; crossing_time in hours; u_t the threshold impact parameter
+# (in Einstein radii) bounding what counts as a detectable event.
+
 @njit
 def wrap_degrees(x):
     x = (x + 180) % 360
@@ -25,7 +34,6 @@ def wrap_degrees(x):
 def kpc_from_mu0(mu0):
     return np.power(10, mu0/5.+1-3)
 @njit
-
 def mu0_from_kpc(kpc):
     return 5*(np.log10(kpc) + 3. - 1. )
 
@@ -33,7 +41,6 @@ def differential_rate_integrand_mw_maker(l, b, ds, u_t, mass, mw_model,
                                          finite=True, v_disp=None, t_e=True, 
                                          tmax=np.inf, tmin=0):
     def differential_rate_integrand_mw(umin, dl, t, finite=True):
-            # return self.differential_rate_integrand(umin, d, t, self.mw_model, finite=finite)
         return LensCalcPy.pbh.differential_rate_integrand(
                 l, b, dl, ds, umin, t, u_t, mass, mw_model, 
                 finite=finite, v_disp=v_disp, t_e = t_e, 
@@ -79,7 +86,6 @@ def calculate_lensing_rates(sources: pd.DataFrame, mw: LensCalcPy.galaxy.Galaxy,
     for i in tqdm(indices,smoothing=0):
         l,b,mu0 = source_arr[i]
         ds = kpc_from_mu0(mu0)
-        # print(ds)
         with warnings.catch_warnings(action="ignore"):
             rates[i] = source_lensing_rate(l, b, ds, mw, u_t=u_t, mass=pbhmass)
         if write_csv:
@@ -124,22 +130,14 @@ def get_partial_rates(filename):
             lastkey = (l,b,mu0) 
     return rates, lastkey
 
-# def get_last_vals(filename):
-#     return [float(_) for _ in get_last_line(filename).replace('\n',',').split(',') if len(_)>0]
 
-def sample_density_single_source(params, # galactic longitude (degrees)
-                 # b, # galactic latitide (degrees)
-                 # dl,  # lens distance from Earth (kpc)
-                 # ds,  # source distance from Earth (kpc)
-                 mw_model: LensCalcPy.galaxy.Galaxy, # LensCalcPy.galaxy object
-                #  source_catalog, # DataFrame from TRIStar catalog
-                #  catalog_size, 
+def sample_density_single_source(params,
+                 mw_model: LensCalcPy.galaxy.Galaxy,
                  lbounds=(-180,180),
                  bbounds=(-90,90),
                  mass=1,
                  u_t=5,
                  **lcp_params
-                 #umin=.5 # minimum impact parameter - u=2 ~50 mmag
 ):
     """
     Compute density of microlensing event space in differential volume.
@@ -166,15 +164,9 @@ def sample_density_single_source(params, # galactic longitude (degrees)
         Event rate in (hours)**-(2) * (kpc)**(-2)
     """
     source_index, l, b, mu0, dl, umin, crossing_time = params
-    # source_index = int(np.floor(source_index))
-    # if source_index >= catalog_size or source_index < 0:
-    #     return 0
-    # l,b,mu0 = source_catalog.iloc[source_index][['gall', 'galb', 'mu0']]
     l = wrap_degrees(l)
     b = wrap_degrees(b)
-    # ds = np.power(10, mu0/5.-3)
     ds = kpc_from_mu0(mu0)
-    # l, b, dl, ds, umin, crossing_time = params
     if l < lbounds[0] \
     or l > lbounds[1] \
     or b > bbounds[1] \
@@ -188,13 +180,8 @@ def sample_density_single_source(params, # galactic longitude (degrees)
         return 0
     return prob
 
-def sample_density_single_source_log(params, # galactic longitude (degrees)
-                 # b, # galactic latitide (degrees)
-                 # dl,  # lens distance from Earth (kpc)
-                 # ds,  # source distance from Earth (kpc)
-                 mw_model, # LensCalcPy.galaxy object
-                #  source_catalog, # DataFrame from TRIStar catalog
-                #  catalog_size, 
+def sample_density_single_source_log(params,
+                 mw_model,
                  lbounds=(-180,180),
                  bbounds=(-90,90),
                  mass=1,
@@ -255,8 +242,6 @@ def make_events(
     
     }
 
-    # basedir= f"{os.getenv('HOME')}/rubin-user/data/opsim_ml"
-    # events_file = f'{basedir}/ml_events_{nsteps}_toss-{ntoss}_{int(np.ceil(time.time()))}_{run_label}_ut-{u_t}_m-{massname}.csv'
     events_file = outfile
     basedir = '/'.join(events_file.split("/")[:-1])
     basepath = Path(basedir)
@@ -289,6 +274,13 @@ def make_events(
     # much faster (like 1000x) to pull these into numpy arrays than use iloc
     source_arr = sources[['gall', 'galb', 'mu0']].to_numpy()
 
+    # Metropolis-Hastings over event space. Each proposal redraws a source and
+    # then draws lens distance dl ~ U(0, ds), impact parameter umin ~ U(0, u_t),
+    # and crossing time log-uniform in [t_min, t_max] -- between the daily
+    # cadence and the full survey length, outside which events are not
+    # recoverable. The proposal log-rate adds log(ds) (line-of-sight volume) and
+    # log(crossing_time) (Jacobian of the log-uniform t draw). Acceptance is the
+    # standard log-space rule; the first ntoss samples are burn-in.
     for i in tqdm(range(nsteps+ntoss), smoothing=0):
     
         source_index, l, b, mu0, dl, umin, crossing_time, lograte = samples[-1]    

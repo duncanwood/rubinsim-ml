@@ -1,4 +1,3 @@
-# from . import events
 import os
 import time
 
@@ -11,6 +10,7 @@ import seaborn as sns
 
 from . import rubinsim
 
+# 5-sigma single-visit limiting magnitudes per LSST band (AB).
 single_exp_m5 = {
     'u':23.8, 
     'g':24.5,
@@ -52,7 +52,6 @@ def plot_hist_color(
       mincolor = np.min(colors)
   viridis = mpl.colormaps['viridis'].resampled(256)
   fig, ax = plt.subplots(1,1)
-  # counts, bins = np.histogram(data, bins=bins)
 
   bars = ax.bar(bins[:-1][nanmask], counts[nanmask], 
   width=(bins[1:]-bins[:-1])[nanmask], align='edge', 
@@ -328,7 +327,6 @@ def compare_opsims(result_files: list, outdir=None, log=False):
 
   sns.heatmap(np.log10(det_pivot),fmt='.1e')
   plt.title('Absolute detection efficiency of cadence strategies by PBH mass')
-  # plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%.2e'))
   plt.gca().set_xticks(ticks=plt.gca().get_xticks(),
         labels=[f'{x:.2e}' for x in sorted(det_df['pbhmass'].unique())])
   plt.xlabel('PBH Mass (Solar masses)')

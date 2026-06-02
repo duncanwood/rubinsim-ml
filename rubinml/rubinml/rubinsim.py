@@ -21,6 +21,8 @@ from . import events
 
 def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: str,
                             t_start=1., t_end=3652.):
+  # Map sampled events onto an opsim via a UserPointsSlicer and run the MAF
+  # MicrolensingMetric (detect mode) over the requested crossing-time range.
   filters = [ col for col in events.columns if 'mag' in col ]
   opsim = os.path.basename(baseline_file).replace('.db','')
   print(f'running on {opsim}')
@@ -39,6 +41,7 @@ def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: st
     slicer = slicers.UserPointsSlicer(events['ra'].array,
                                       events['dec'].array, 
                                       lat_lon_deg=True, badval=0)
+    # MAF expects the Einstein crossing time tE in days; events store it in hours.
     slicer.slice_points["crossing_time"]=events['crossing_time'].array/24
     slicer.slice_points["impact_parameter"]=events['umin'].array
     slicer.slice_points["peak_time"]= rng.uniform(low=t_start, high=t_end, size=len(events))
@@ -50,10 +53,8 @@ def run_microlensing_metric(events: pd.DataFrame, baseline_file: str, outdir: st
                                             info_label=f'Microlensing rate (1/hour)')
     bundles[key] = maf.MetricBundle(metric, slicer, None, run_name=opsim, 
                                             summary_metrics=summaryMetrics, 
-
                                             info_label=f'tE {crossing[0]}_{crossing[1]} days')
 
-    # outDir = 'test_microlensing_dm_rubinsim_1sm_galplane'
     g = maf.MetricBundleGroup(bundles, baseline_file, outdir)
     g.run_all()
 
@@ -70,7 +71,6 @@ def run_microlensing_metric_mult(events_list: list, sources: pd.DataFrame,
   bundles = {}
   resultDbs = {}
 
-  # crossing_times = [[0, 30000]]
   seed = 42
   rng = np.random.default_rng(seed)
   for events_df, events_info in events_list:
@@ -89,13 +89,10 @@ def run_microlensing_metric_mult(events_list: list, sources: pd.DataFrame,
       filtername = f[0]
       slicer.slice_points["apparent_m_no_blend_{}".format(filtername)] = full_events_df[f].array
       slicer.slice_points["apparent_m_{}".format(filtername)] = full_events_df[f].array
-    # bundle_rates['rates'] = maf.MetricBundle(metric, slicer, None, run_name=opsim,  
-    #                                         info_label=f'Microlensing rate (1/hour)')
     bundles[key] = maf.MetricBundle(metric, slicer, constraint=constraint, run_name=opsim, 
                                             summary_metrics=summaryMetrics, 
                                             info_label=f'PBH mass {events_info["pbhmass"]:08.4e}sm_{constraint}')
 
-    # outDir = 'test_microlensing_dm_rubinsim_1sm_galplane'
   g = maf.MetricBundleGroup(bundles, baseline_file, outdir)
   g.run_all()
 
@@ -125,7 +122,6 @@ def run_microlensing_metric_mult_Fisher_Npts_Nights(events_list: list, sources: 
   bundles = {}
 
 
-  # crossing_times = [[0, 30000]]
   seed = 42
   rng = np.random.default_rng(seed)
   for events_df, events_info in events_list:
@@ -153,7 +149,6 @@ def run_microlensing_metric_mult_Fisher_Npts_Nights(events_list: list, sources: 
     bundles[key+'_Nights'] = maf.MetricBundle(metric_Nights, slicer, constraint=constraint, run_name=opsim, 
                                             info_label=f'PBH mass {events_info["pbhmass"]:08.4e}sm_{constraint} Nights')
 
-    # outDir = 'test_microlensing_dm_rubinsim_1sm_galplane'
   g = maf.MetricBundleGroup(bundles, baseline_file, outdir)
   g.run_all()
 
