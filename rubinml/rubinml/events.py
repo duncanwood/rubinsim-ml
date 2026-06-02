@@ -112,9 +112,6 @@ def load_rates_from_file(old_rates_file):
 def rates_to_rubin_counts(rates, n_tristar=11_433_322_690):
     return round(sum(rates.values())*n_tristar/len(rates.values())*24*365*10)
 
-def log_rates_to_rubin_counts(rates: pd.DataFrame, n_tristar=11_433_322_690):
-    return round(sum(np.rates.values())*n_tristar/len(rates.values())*24*365*10)
-
 def rubin_counts_from_rates_file(file: str): 
     return rates_to_rubin_counts(load_rates_from_file(file))
 
@@ -185,7 +182,7 @@ def sample_density_single_source_log(params,
                  lbounds=(-180,180),
                  bbounds=(-90,90),
                  mass=1,
-                 u_t=2,
+                 u_t=5,
                  **lcp_params):
     density = sample_density_single_source(params, mw_model, lbounds, bbounds, mass, u_t, **lcp_params)
     if density==0.:
@@ -261,9 +258,9 @@ def make_events(
         p0.append([source_index, l, b, mu0, ds*np.random.random(), 1, 100])
 
     mu0 = sources.iloc[p0[0][0]]['mu0']
-    ds = np.power(10, mu0/5.-3)
+    ds = kpc_from_mu0(mu0)
     new_lograte = np.log(ds)+sample_density_single_source_log(p0[0], 
-                 mw, # LensCalcPy.galaxy object
+                 mw,
                  u_t=u_t,
                  mass=pbhmass)
 
@@ -288,15 +285,15 @@ def make_events(
             samples = []
         while True:
             new_source_index = np.random.randint(sources.shape[0])
-            new_l,new_b,new_mu0 = source_arr[source_index]
+            new_l,new_b,new_mu0 = source_arr[new_source_index]
             ds = kpc_from_mu0(new_mu0)
             new_dl = np.random.random()*ds # put lens uniformly random between earth and source
             new_umin = np.random.random()*u_t # limit to photometric repeatability limit for dim sources
             new_crossing_time = t_min * np.power(t_max/t_min, np.random.random()) # limit between daily cadence and full survey length
             new_event=[new_source_index, new_l, new_b, new_mu0, 
                        new_dl, new_umin, new_crossing_time]
-            new_lograte =  sample_density_single_source_log(new_event, # galactic longitude (degrees)
-                    mw, # LensCalcPy.galaxy object
+            new_lograte =  sample_density_single_source_log(new_event,
+                    mw,
                     u_t=u_t,
                     mass=pbhmass,
                     t_e=True) \

@@ -71,6 +71,16 @@ class MetropolisHastingsEndToEnd(unittest.TestCase):
         self.assertTrue(np.all((ct >= p["t_min"] - 1e-6) & (ct <= p["t_max"] + 1e-6)))
         self.assertTrue(np.all(df["source_index"].to_numpy() < sources.shape[0]))
 
+        # regression for AUDIT #1: each event's source_index must match its own
+        # (gall, galb, mu0). The pre-fix sampler read source_arr[source_index]
+        # (the previous state) instead of source_arr[new_source_index], so the
+        # stored label was off by one MH step from the coordinates.
+        for _, row in df.iterrows():
+            si = int(row["source_index"])
+            self.assertAlmostEqual(row["gall"], sources.iloc[si]["gall"], places=9)
+            self.assertAlmostEqual(row["galb"], sources.iloc[si]["galb"], places=9)
+            self.assertAlmostEqual(row["mu0"], sources.iloc[si]["mu0"], places=9)
+
 
 if __name__ == "__main__":
     unittest.main()

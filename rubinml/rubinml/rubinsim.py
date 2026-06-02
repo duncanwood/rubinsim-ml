@@ -181,12 +181,12 @@ def make_metric_plots(bundles, outDir:str):
     for c in max_colors:
         plotDict = {'reduce_func': np.sum, 'nside': 64, 
                     'color_min': 0, 'color_max': c}
-    plotFunc = maf.plots.HealpixSkyMap()
-    ph = maf.plots.PlotHandler(out_dir=outDir, thumbnail=False, outfile_suffix=f'maxcolor-{c}')
-    for k in bundles:
-        ph.set_metric_bundles([bundles[k]])
-        fig = ph.plot(plot_func=plotFunc, plot_dicts=plotDict)
-        fig.close()
+        plotFunc = maf.plots.HealpixSkyMap()
+        ph = maf.plots.PlotHandler(out_dir=outDir, thumbnail=False, outfile_suffix=f'maxcolor-{c}')
+        for k in bundles:
+            ph.set_metric_bundles([bundles[k]])
+            fig = ph.plot(plot_func=plotFunc, plot_dicts=plotDict)
+            fig.close()
 
 def make_ndet_df(result_files: list):
   ndetections = []
