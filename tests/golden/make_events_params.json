@@ -1,0 +1,20 @@
+{
+  "seed": 0,
+  "n_survey_events": 10,
+  "u_t": 5.0,
+  "t_min": 24.0,
+  "t_max": 87600.0,
+  "pbhmass": 1.0,
+  "ntoss": 10,
+  "n_rows": 10,
+  "columns": [
+    "source_index",
+    "gall",
+    "galb",
+    "mu0",
+    "dl",
+    "umin",
+    "crossing_time",
+    "lograte"
+  ]
+}

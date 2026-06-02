@@ -1,0 +1,32 @@
+# rubinml pinned dependencies (Python 3.11)
+# Versions are those verified working in the project conda env "rubinsim"
+# (Python 3.11.9) on 2026-06-01. See AUDIT.md for environment notes.
+#
+# Core MC + rate model (events.py)
+numpy==1.26.4
+pandas==2.2.2
+numba==0.59.1
+scipy==1.13.1
+tqdm==4.66.4
+#
+# Analytic differential event-rate (NFW + Milky Way model).
+# Installed editable from the sibling repo ../LensCalcPy (a stale PyPI build of
+# 0.0.3 has an einstein_rad() signature bug; prefer the repo checkout).
+LensCalcPy==0.0.3
+#
+# Rubin/LSST detection metric orchestration (rubinsim.py)
+# Installed editable from a rubin_sim checkout; pulls rubin_scheduler.
+# Requires the rubin_sim reference data set (rs_download_data) and an opsim
+# baseline .db -- neither is bundled here. See AUDIT.md "Data dependencies".
+rubin_sim==2.0.1.dev124+g783a21bb
+rubin_scheduler==1.2.0
+astropy==6.1.0
+healpy==1.16.6
+#
+# Plotting (plots.py)
+matplotlib==3.8.4
+seaborn==0.13.2
+#
+# Only needed to read the TRIStar source catalog (rand_tristar_*.parquet) in the
+# notebooks; events.py itself does not import it.
+# pyarrow
