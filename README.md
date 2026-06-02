@@ -73,13 +73,13 @@ takes no required arguments. The public NolanSmyth `HEAD` has a different
 `MilkyWayModel` API and the PyPI `0.0.3` build has an `einstein_rad()` bug.
 
 The fork is published at
-[duncanwood/LensCalcPy](https://github.com/duncanwood/LensCalcPy) (branch
-`functional-refactor`); `requirements.txt` pins the exact commit. Install it
-directly, or use a local editable checkout for development:
+[duncanwood/LensCalcPy](https://github.com/duncanwood/LensCalcPy) -- its default
+branch `functional-refactor` carries the rate model, so a bare install works;
+`requirements.txt` pins the exact commit for reproducibility:
 
 ```bash
-pip install "git+https://github.com/duncanwood/LensCalcPy.git@functional-refactor"
-# or:  pip install -e /path/to/LensCalcPy
+pip install "git+https://github.com/duncanwood/LensCalcPy.git"
+# or, for development:  pip install -e /path/to/LensCalcPy
 ```
 
 ### 3. rubin_sim (detection metric -- optional)
