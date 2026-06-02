@@ -11,10 +11,10 @@ estimate detection efficiency across observing-cadence strategies.
 It is the laptop-minutes replacement for a cluster-weeks PopSyCLE
 population-synthesis run: sampling is linear in the number of proposed events
 (Metropolis-Hastings over the analytic rate, numba-JIT) rather than quadratic in
-the source catalog. From the dissertation; now a reference / portfolio artifact.
+the source catalog. I wrote it for my [dissertation](https://escholarship.org/uc/item/9g81m0j9).
 
-The code has been audited and tested -- see [`MAP.md`](MAP.md) (architecture)
-and [`AUDIT.md`](AUDIT.md) (findings + fixes).
+See [`MAP.md`](MAP.md) for the architecture and [`AUDIT.md`](AUDIT.md) for the
+findings and fixes.
 
 ## The pipeline
 
@@ -32,7 +32,7 @@ detection fractions  ->  plots (efficiency vs crossing time, cadence comparison,
 ```
 
 The two halves are decoupled: the **simulation + rate** half needs only
-LensCalcPy; the **detection-metric** half needs `rubin_sim` and survey data.
+LensCalcPy, and the **detection-metric** half needs `rubin_sim` and survey data.
 `import rubinml` works with just the simulation half installed (`rubinml.rubinsim`
 is `None` when `rubin_sim` is absent).
 
@@ -59,22 +59,22 @@ hit this, repair it in place (version-preserving, reversible, backs up each lib)
 python scripts/fix_macos_conda_rpaths.py        # operates on $CONDA_PREFIX/lib
 ```
 
-(The conda-native alternative -- upgrading libgfortran -- pulls numpy 2 and
-breaks the pinned stack, so the in-place rpath fix is preferred here.)
+(The conda-native alternative, upgrading libgfortran, pulls numpy 2 and breaks
+the pinned stack, so the in-place rpath fix is preferred here.)
 
 ### 2. LensCalcPy (analytic event rate)
 
 This code depends on a *fork* of LensCalcPy, not the public package: the rate
 model uses functions added on top of
-[NolanSmyth/LensCalcPy](https://github.com/NolanSmyth/LensCalcPy) -- the `ds`
+[NolanSmyth/LensCalcPy](https://github.com/NolanSmyth/LensCalcPy) (the `ds`
 argument to `einstein_rad`, the Jacobian in `differential_rate_integrand`,
-`differential_rate`, single-source event sampling -- and a `MilkyWayModel()` that
-takes no required arguments. The public NolanSmyth `HEAD` has a different
+`differential_rate`, and single-source event sampling) and a `MilkyWayModel()`
+that takes no required arguments. The public NolanSmyth `HEAD` has a different
 `MilkyWayModel` API and the PyPI `0.0.3` build has an `einstein_rad()` bug.
 
 The fork is published at
-[duncanwood/LensCalcPy](https://github.com/duncanwood/LensCalcPy) -- its default
-branch `functional-refactor` carries the rate model, so a bare install works;
+[duncanwood/LensCalcPy](https://github.com/duncanwood/LensCalcPy). Its default
+branch `functional-refactor` carries the rate model, so a bare install works.
 `requirements.txt` pins the exact commit for reproducibility:
 
 ```bash
@@ -82,7 +82,7 @@ pip install "git+https://github.com/duncanwood/LensCalcPy.git"
 # or, for development:  pip install -e /path/to/LensCalcPy
 ```
 
-### 3. rubin_sim (detection metric -- optional)
+### 3. rubin_sim (detection metric, optional)
 
 Only needed for the MAF metric half.
 
@@ -92,7 +92,7 @@ rs_download_data               # reference throughputs/skybrightness (multi-GB)
 ```
 
 You also need an **opsim baseline `.db`** (a cadence simulation) to run the
-metric against -- download one from the Rubin survey-strategy releases and pass
+metric against. Download one from the Rubin survey-strategy releases and pass
 its path to `run_microlensing_metric`.
 
 ### 4. The package
@@ -145,7 +145,7 @@ python -m unittest discover -s tests        # 28 tests; pytest also works
 Unit + exact-seeded parity (`tests/golden/`) + integration. Tests that need the
 LensCalcPy fork (the analytic-rate and MC paths) self-skip when it is absent, and
 the rubin_sim MAF integration self-skips without the reference data / opsim
-baseline. On a fully-configured machine all run; in CI the public-reproducible
+baseline. On a fully-configured machine all run. In CI the public-reproducible
 subset (pure logic + packaging) runs green and the rest skip.
 
 ## Reproducing the original (dissertation) results
@@ -175,9 +175,9 @@ requirements.txt       exact pins of the reference machine
 
 ## Adapting to other surveys or datasets
 
-The simulation core (`events.py`) is largely survey-agnostic -- it depends on
+The simulation core (`events.py`) is largely survey-agnostic. It depends on
 the Galactic model (LensCalcPy) and a source catalog, with the survey entering
-only through a few parameters: `u_t` (threshold impact parameter), and the
+only through a few parameters: `u_t` (threshold impact parameter) and the
 crossing-time bounds `t_min`/`t_max` (daily cadence to survey length). To use a
 different source catalog, provide a DataFrame with columns `gall`, `galb`,
 `mu0`, `ra`, `dec`, and per-band `*mag`.
@@ -188,13 +188,13 @@ bands / single-visit depths (`plots.single_exp_m5`). Supporting another
 telescope means, roughly:
 
 1. parameterize the survey config (bands, single-visit depths, cadence, `u_t`)
-   instead of the hardcoded LSST values;
-2. document / adapt the source-catalog schema for that survey's photometry;
-3. provide a detection backend for the new survey -- either that survey's own
-   cadence-metric tooling, or a survey-agnostic light-curve injection + outlier
-   test (the sibling `nsc-ml` repo is one such detector).
+   instead of the hardcoded LSST values
+2. document or adapt the source-catalog schema for that survey's photometry
+3. provide a detection backend for the new survey, either that survey's own
+   cadence-metric tooling or a survey-agnostic light-curve injection + outlier
+   test (the sibling `nsc-ml` repo is one such detector)
 
-These are design changes, not yet implemented; the simulation half can be reused
+These are design changes, not yet implemented. The simulation half can be reused
 today by supplying an appropriate catalog and parameters. A prior-art survey and
 a concrete proposal for a shared, telescope-agnostic survey-config layer (also
 intended for the sibling `nsc-ml` detector) is in
@@ -202,9 +202,10 @@ intended for the sibling `nsc-ml` detector) is in
 
 ## References
 
-Duncan Wood, PhD dissertation (Rubin/LSST microlensing chapter) -- see the rate
-derivation and the detection-efficiency results.
+Duncan Wood, PhD dissertation, Rubin/LSST microlensing chapter:
+https://escholarship.org/uc/item/9g81m0j9 (rate derivation and
+detection-efficiency results).
 
 ## License
 
-TODO -- add a license before distributing.
+TODO: add a license before distributing.

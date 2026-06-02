@@ -1,7 +1,7 @@
-# rubinml -- code map
+# rubinml: code map
 
-Microlensing event-simulation code from Duncan Wood's PhD. It Monte-Carlo
-samples an analytic differential microlensing event rate for an NFW dark-matter
+Microlensing event simulation from my [dissertation](https://escholarship.org/uc/item/9g81m0j9).
+It Monte-Carlo samples an analytic differential microlensing event rate for an NFW dark-matter
 (e.g. primordial black hole) lens population folded through a Milky Way model,
 then pushes the sampled events through the Rubin/LSST `MicrolensingMetric` (MAF)
 to estimate detectability across observing-cadence strategies.
