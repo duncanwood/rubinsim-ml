@@ -1,0 +1,26 @@
+# Conda environment for the rubinml simulation + plotting core.
+#   mamba env create -f environment.yml   # then: conda activate rubinml
+#
+# numpy is pinned <2 for rubin_sim / LensCalcPy compatibility. On macOS a fresh
+# solve of this pinned stack can land the libgfortran5 13.2.0 build with a
+# malformed duplicate rpath; if `import numpy` then fails with
+# "Library not loaded ... duplicate LC_RPATH", run:
+#     python scripts/fix_macos_conda_rpaths.py
+#
+# LensCalcPy (analytic rate) and rubin_sim (MAF detection metric) are installed
+# separately -- see README.md "Installation". The MC core works without them
+# beyond LensCalcPy.
+name: rubinml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - "numpy<2"
+  - pandas
+  - scipy
+  - numba
+  - tqdm
+  - matplotlib
+  - seaborn
+  - pyarrow        # to read the TRIStar source catalog (parquet)
+  - pip
