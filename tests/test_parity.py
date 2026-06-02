@@ -31,6 +31,8 @@ def _run_make_events():
             os.unlink(path)
 
 
+@unittest.skipUnless(H.lenscalc_rate_available(),
+                     "needs the project LensCalcPy fork (MilkyWayModel API)")
 class MakeEventsParity(unittest.TestCase):
     def setUp(self):
         self.golden = pd.read_csv(H.GOLDEN / "make_events_seed0.csv")
@@ -59,6 +61,8 @@ class MakeEventsParity(unittest.TestCase):
         pd.testing.assert_frame_equal(a, b)
 
 
+@unittest.skipUnless(H.lenscalc_rate_available(),
+                     "needs the project LensCalcPy fork (MilkyWayModel API)")
 class RateParity(unittest.TestCase):
     def setUp(self):
         self.golden = json.loads((H.GOLDEN / "rates_small.json").read_text())

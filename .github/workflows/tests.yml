@@ -25,7 +25,9 @@ jobs:
           pip install "setuptools<81" wheel
           # numpy<2 for LensCalcPy compatibility; enforce it as a constraint so
           # transitive resolves do not pull numpy 2.
-          echo "numpy<2" > /tmp/constraints.txt
+          # numpy<2 for LensCalcPy; scipy<1.14 keeps interp2d (public LensCalcPy
+          # builds may still import it -- removed in scipy 1.14).
+          printf 'numpy<2\nscipy<1.14\n' > /tmp/constraints.txt
           # fastcore + emcee are runtime deps LensCalcPy imports but does not
           # declare in settings.ini, so install them explicitly.
           pip install -c /tmp/constraints.txt pandas scipy numba tqdm matplotlib seaborn astropy fastcore emcee pathos
@@ -36,7 +38,11 @@ jobs:
       - name: Run tests
         env:
           CI: "true"   # skips the platform-specific exact MH golden (see test_parity.py)
-        run: python -m unittest discover -s tests -p "test_*.py" -v
+        # Run from a neutral dir so `import rubinml` resolves to the installed
+        # package, not the repo-root rubinml/ directory (which would shadow it
+        # as a namespace package). The harness finds events.py by absolute path.
+        working-directory: ${{ runner.temp }}
+        run: python -m unittest discover -s "$GITHUB_WORKSPACE/tests" -t "$GITHUB_WORKSPACE/tests" -p "test_*.py" -v
 
       - name: Quickstart smoke test
         run: python examples/quickstart.py

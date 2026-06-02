@@ -14,6 +14,8 @@ import _harness as H
 ev = H.load_events()
 
 
+@unittest.skipUnless(H.lenscalc_rate_available(),
+                     "needs the project LensCalcPy fork (MilkyWayModel API)")
 class LensCalcRatePath(unittest.TestCase):
     def setUp(self):
         with warnings.catch_warnings():
@@ -43,6 +45,8 @@ class LensCalcRatePath(unittest.TestCase):
         self.assertTrue(rates[0] < rates[1] < rates[2], rates)
 
 
+@unittest.skipUnless(H.lenscalc_rate_available(),
+                     "needs the project LensCalcPy fork (MilkyWayModel API)")
 class MetropolisHastingsEndToEnd(unittest.TestCase):
     def test_real_make_events_invariants(self):
         sources = H.build_sources()

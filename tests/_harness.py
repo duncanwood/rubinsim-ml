@@ -88,6 +88,32 @@ def seeded_rng():
     import numpy as np
     return np.random.default_rng(SEED)
 
+
+_RATE_OK = None
+
+
+def lenscalc_rate_available():
+    """True iff the installed LensCalcPy matches the API the code expects.
+
+    The analytic-rate path depends on the project's LensCalcPy fork (its
+    MilkyWayModel() takes no required args, plus added rate functions). The
+    public NolanSmyth/LensCalcPy has a different MilkyWayModel signature, so the
+    rate/MC tests skip there rather than error. See README "Installation" and
+    docs/ -- the fork needs to be published for these to run off this machine.
+    """
+    global _RATE_OK
+    if _RATE_OK is None:
+        try:
+            import warnings
+            ev = load_events()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                ev.MilkyWayModel()
+            _RATE_OK = True
+        except Exception:
+            _RATE_OK = False
+    return _RATE_OK
+
 # (l, b, mu0) probes for the rate goldens. ds = kpc_from_mu0(mu0).
 RATE_PROBES = [
     (2.0, -3.0, 14.5),

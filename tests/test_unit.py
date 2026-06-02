@@ -96,6 +96,8 @@ class RatesToRubinCounts(unittest.TestCase):
                          round(2e-10 * self.HOURS_10YR))
 
 
+@unittest.skipUnless(H.lenscalc_rate_available(),
+                     "needs the project LensCalcPy fork (MilkyWayModel API)")
 class DensityDomainGuards(unittest.TestCase):
     """sample_density_single_source returns 0 outside the physical support;
     the log variant returns -inf there. params =
