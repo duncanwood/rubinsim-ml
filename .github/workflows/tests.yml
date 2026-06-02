@@ -26,7 +26,9 @@ jobs:
           # numpy<2 for LensCalcPy compatibility; enforce it as a constraint so
           # transitive resolves do not pull numpy 2.
           echo "numpy<2" > /tmp/constraints.txt
-          pip install -c /tmp/constraints.txt pandas scipy numba tqdm matplotlib seaborn astropy
+          # fastcore + emcee are runtime deps LensCalcPy imports but does not
+          # declare in settings.ini, so install them explicitly.
+          pip install -c /tmp/constraints.txt pandas scipy numba tqdm matplotlib seaborn astropy fastcore emcee pathos
           # LensCalcPy from the repo (the PyPI 0.0.3 build has the einstein_rad bug).
           pip install -c /tmp/constraints.txt --no-build-isolation "git+https://github.com/NolanSmyth/LensCalcPy.git"
           pip install -c /tmp/constraints.txt -e rubinml
