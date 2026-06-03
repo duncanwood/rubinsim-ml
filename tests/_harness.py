@@ -99,7 +99,7 @@ def lenscalc_rate_available():
     MilkyWayModel() takes no required args, plus added rate functions). The
     public NolanSmyth/LensCalcPy has a different MilkyWayModel signature, so the
     rate/MC tests skip there rather than error. See README "Installation" and
-    docs/ -- the fork needs to be published for these to run off this machine.
+    docs/, the fork needs to be published for these to run off this machine.
     """
     global _RATE_OK
     if _RATE_OK is None:

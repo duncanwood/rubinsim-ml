@@ -8,3 +8,9 @@ __pycache__/
 # generated example outputs (the input catalog is committed)
 examples/*.pkl
 examples/*.pdf
+
+# internal process artifacts (not needed to run the code)
+docs/survey-config.md
+backup scripts/
+# analysis-driver notebooks + saved binary outputs (~150MB; provenance, not part of the published repo)
+notebooks/

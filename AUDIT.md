@@ -1,9 +1,8 @@
-# rubinml -- audit
+# rubinml: audit
 
-Proposals and findings, not applied changes. The only edits made on the
-`cleanup/rubinml-audit` branch were dead-code/comment removal, sparse comments,
-and one whitespace fix (see `git log`); the parity tests prove behavior is
-unchanged. Everything below is a recommendation to be applied (or not) later.
+Notes from auditing this code: what I found, and what I fixed. The fixes are
+summarized below, and each finding is kept as the rationale of record. The parity
+tests prove behavior is unchanged except where a fix intentionally changed it.
 
 ## Verdict
 
@@ -22,24 +21,24 @@ Severity tags: [BUG] likely wrong result, [REPRO] reproducibility,
 
 ---
 
-## Status -- fixes applied 2026-06-02 (branch `fix/rubinml-audit-findings`)
+## Fixes applied 2026-06-02
 
 Applied (suite parity-green; goldens recaptured where behavior changed):
-- #1 MH source-index bug -- fixed (`source_arr[new_source_index]`); regression
+- #1 MH source-index bug, fixed (`source_arr[new_source_index]`); regression
   test asserts each event's `source_index` matches its own `(gall,galb,mu0)`.
-- #2 dead/broken `log_rates_to_rubin_counts` -- removed.
-- #3 seed-point distance formula -- now `kpc_from_mu0`.
-- #4 `u_t` default mismatch -- aligned to 5.
-- #5 `make_metric_plots` indentation -- fixed (by inspection; not runtime-tested,
+- #2 dead/broken `log_rates_to_rubin_counts`, removed.
+- #3 seed-point distance formula, now `kpc_from_mu0`.
+- #4 `u_t` default mismatch, aligned to 5.
+- #5 `make_metric_plots` indentation, fixed (by inspection; not runtime-tested,
   needs MAF data).
-- #6 unseeded RNG -- `make_events`/`calculate_lensing_rates` take `rng=None`
+- #6 unseeded RNG, `make_events`/`calculate_lensing_rates` take `rng=None`
   (default `np.random.default_rng()`); `np.random.*` -> `rng.*`.
 - #7 `tqdm.notebook` -> `tqdm.auto` (runs in a plain interpreter).
-- #8 magic numbers -- `N_TRISTAR`, `SURVEY_HOURS`, `DAILY_CADENCE_HOURS` named.
-- #11 unused imports + unused `resultDbs` -- removed.
-- #9 path handling -- `make_events` uses `Path(outfile).parent`; `compare_opsims`
+- #8 magic numbers, `N_TRISTAR`, `SURVEY_HOURS`, `DAILY_CADENCE_HOURS` named.
+- #11 unused imports + unused `resultDbs`, removed.
+- #9 path handling, `make_events` uses `Path(outfile).parent`; `compare_opsims`
   takes a `baseline_key` parameter.
-- #10 star imports removed -- `__init__` exports explicit names; `plots` and
+- #10 star imports removed, `__init__` exports explicit names; `plots` and
   `rubinsim` import optionally, so the MC core imports without matplotlib/seaborn
   or rubin_sim (verified both ways).
 - #16 distutils `setup.py` replaced by `pyproject.toml`.
@@ -83,13 +82,13 @@ which feeds straight into the detection metric. This could bias detection
 efficiency; the size of the effect depends on catalog ordering and the
 distance-magnitude correlation.
 
-Proposed fix (NOT applied -- changes outputs): `source_arr[new_source_index]`.
+Proposed fix (NOT applied, changes outputs): `source_arr[new_source_index]`.
 If current results are to be trusted as-is, confirm first whether downstream
 analysis ever relied on `source_index` for the join, or only used the event
 geometry. Re-run the goldens after fixing.
 
 ### 2. [BUG] `log_rates_to_rubin_counts` is dead and broken
-`events.py`: `return round(sum(np.rates.values()) * n_tristar / ...)` -- `np.rates`
+`events.py`: `return round(sum(np.rates.values()) * n_tristar / ...)`, `np.rates`
 is an `AttributeError` (numpy has no `rates`). The function is never called
 anywhere in the package or notebooks. Proposal: delete it, or fix to
 `sum(rates.values())` if a log-space variant was actually wanted. Left in place
@@ -101,7 +100,7 @@ because removing a public (star-exported) symbol is an API change.
 used everywhere else. This is the old (pre-correction) distance-modulus formula
 (it also appears in the dead comment removed during cleanup). It only affects the
 single seed sample, which is inside the `ntoss` burn-in and discarded, so results
-are unaffected -- but it is a latent inconsistency. Proposal: use `kpc_from_mu0`.
+are unaffected, but it is a latent inconsistency. Proposal: use `kpc_from_mu0`.
 Note the seed-point log-rate also omits the `+log(crossing_time)` Jacobian that
 the loop applies (again burn-in only).
 
@@ -131,7 +130,7 @@ Proposal: add `rng: np.random.Generator = None` (default
 `np.random.default_rng()`) and replace `np.random.randint/random` with
 `rng.integers/rng.random`. This is the single highest-value modernization for a
 reference artifact. (Note: it changes the number stream, so it invalidates the
-current goldens -- recapture after.)
+current goldens, recapture after.)
 
 ### 7. [REPRO/STRUCT] `from tqdm.notebook import tqdm` breaks non-notebook use
 Both `events.py` and `rubinsim.py` import `tqdm.notebook`, which raises
@@ -161,9 +160,6 @@ written. The test harness installs a passthrough shim. Proposal:
 - `u_t = 5` (threshold impact parameter, Einstein radii), `t_min = 24` (h, daily
   cadence), `t_max = 24*365*10` (h, survey length), `ntoss = 20000` (burn-in):
   fine as defaults but worth documenting as a small parameter block.
-- The "0.01 radius" is `angular_radius=.01` (deg) in the Q3C `get_nearby_sources`
-  query in `backup scripts/microlensing_event_sampling.py`; it is not in the
-  active code path.
 
 ### 9. [SMELL] Output-path handling
 `make_events` derives `basedir` by string-splitting `outfile` on `/`
@@ -172,7 +168,7 @@ timestamped filenames with `time.time()`. Proposal: use `pathlib` consistently
 (`Path(outfile).parent`) and pass output directories explicitly. No hardcoded
 absolute paths remain in the active code (the old `$HOME/rubin-user/...` default
 was a dead comment, removed during cleanup). `compare_opsims` hardcodes the
-baseline key `'baseline_v3.6_10yrs'` for normalization -- make it a parameter.
+baseline key `'baseline_v3.6_10yrs'` for normalization, make it a parameter.
 
 ---
 
@@ -191,7 +187,7 @@ sidestep this.)
 - `events.py`: `glob` (unused).
 - `rubinsim.py`: `datetime`, `pathlib.Path`, `csv`, `numba.njit`,
   `tqdm`, `rubin_sim.utils as rsUtils`, `rubin_sim.data.get_baseline`,
-  `rubin_sim.maf.db as db` -- all imported, none used.
+  `rubin_sim.maf.db as db`, all imported, none used.
 Removing unused imports is low-risk but is left as a proposal to keep the audit
 diff strictly dead-comment/format only.
 
@@ -208,7 +204,7 @@ could be a straight assignment.
 
 ---
 
-## Environment & data (base state -- record and continue)
+## Environment & data (base state: record and continue)
 
 ### 14. [ENV] Broken numpy in the `rubinsim` conda env (repaired during audit)
 On first run, `import numpy` in env `rubinsim` failed:
@@ -252,13 +248,13 @@ correct `einstein_rad(dl, mass, ds)`; prefer it. The test harness prepends it.
 ### 17. [ENV/REPRO] The analytic-rate path depends on a private LensCalcPy fork
 `events.py`'s rate model (`source_lensing_rate`, `sample_density_single_source`,
 the `make_events` MC) calls LensCalcPy functions that exist only on the project's
-local fork -- the `ds` arg to `einstein_rad`, the Jacobian in
-`differential_rate_integrand`, `differential_rate`, single-source sampling -- and
+local fork, the `ds` arg to `einstein_rad`, the Jacobian in
+`differential_rate_integrand`, `differential_rate`, single-source sampling, and
 a `MilkyWayModel()` with no required args. The local LensCalcPy checkout is at a
 commit (`fac1a16`) **not present on `NolanSmyth/LensCalcPy`**, plus uncommitted
 `pbh.py` changes. The public package has a different `MilkyWayModel` API (and an
 `einstein_rad` bug in 0.0.3), so the rate path does not run against it. **This is
-the deepest reproducibility blocker** -- no CI or external user can run the
+the deepest reproducibility blocker**, no CI or external user can run the
 simulation without this fork.
 
 RESOLVED 2026-06-02: the fork is published at
@@ -278,13 +274,14 @@ Proposal: a minimal `pyproject.toml` with `install_requires` from
 
 ---
 
-## Backups
+## Backups (removed)
 
-Keep `backup scripts/` as historical provenance -- do not delete. They document
-where the installed metric came from and the pre-MCMC sampling approach. They are
-not imported by the package (verified) and the science does not depend on them
-(see MAP.md STEP 1b). If repo tidiness matters, move them under `docs/legacy/`
-rather than removing them.
+The repo used to carry a `backup scripts/` directory: two verbatim copies of the
+upstream `rubin_sim` MicrolensingMetric and a superseded pre-MCMC sampler. I
+removed them. They were not imported by the package and the science does not
+depend on them, and the metric copies were GPL-3.0 upstream code sitting in an
+MIT-licensed repo. The metric the code actually uses is the installed `rubin_sim`
+one (see `MAP.md`).
 
 ---
 
@@ -292,6 +289,6 @@ rather than removing them.
 
 - Auto-generated `_summary_` / `_description_` docstring stubs remain in
   `plots.py` and `make_events`; replace with one-line descriptions or drop.
-- `plots.py` mixes 2-space and 4-space indentation across functions (not changed
-  -- reindenting would obscure any future diff).
+- `plots.py` mixes 2-space and 4-space indentation across functions (not
+  changed, reindenting would obscure any future diff).
 - `resultDbs = {}` in `rubinsim.py` is assigned and never used.

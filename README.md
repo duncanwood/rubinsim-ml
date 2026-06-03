@@ -164,8 +164,6 @@ reproduces the old numbers. `main`/`master` has the corrected behavior.
 
 ```
 rubinml/rubinml/       package: events.py (MC core), rubinsim.py (MAF), plots.py
-backup scripts/        earlier standalone versions (historical; not imported)
-notebooks/             analysis-driver notebooks + saved results
 tests/                 unit + parity + golden + integration
 scripts/               fix_macos_conda_rpaths.py (env repair helper)
 MAP.md / AUDIT.md      architecture map / audit findings
@@ -195,10 +193,7 @@ telescope means, roughly:
    test (the sibling `nsc-ml` repo is one such detector)
 
 These are design changes, not yet implemented. The simulation half can be reused
-today by supplying an appropriate catalog and parameters. A prior-art survey and
-a concrete proposal for a shared, telescope-agnostic survey-config layer (also
-intended for the sibling `nsc-ml` detector) is in
-[`docs/survey-config.md`](docs/survey-config.md).
+today by supplying an appropriate catalog and parameters.
 
 ## References
 

@@ -11,8 +11,8 @@ population-synthesis run: the sampler is linear in the number of proposed events
 rather than quadratic in the source catalog, and the rate evaluation is the
 analytic NFW integrand (LensCalcPy) instead of a resolved population.
 
-This document maps the code as it exists on the `cleanup/rubinml-audit` branch.
-Proposals, findings, and the environment/data caveats are in `AUDIT.md`.
+This document maps the code. Findings and the environment/data caveats are in
+`AUDIT.md`.
 
 ## Layout
 
@@ -23,10 +23,8 @@ rubin-sim-ml/
     events.py          MC core: analytic rate + Metropolis-Hastings sampler
     rubinsim.py        rubin_sim MAF orchestration (the detection metric)
     plots.py           event + detection diagnostic plots
-  backup scripts/      earlier standalone versions (NOT imported; see below)
-  notebooks/           the actual analysis driver notebooks + saved results
-  tests/               audit suite (unit + parity + golden + integration)
-  requirements.txt     pinned deps (this audit)
+  tests/               unit + parity + golden + integration
+  requirements.txt     pinned deps
 ```
 
 ## Data flow
@@ -48,7 +46,7 @@ run_microlensing_metric[_mult](full_events_df, baseline.db, outdir)   rubinsim.p
 detection arrays (.npz / .pickle)  ->  make_ndet_df / plots.py (efficiency, sky maps, cadence compare)
 ```
 
-## events.py -- MC core
+## events.py: MC core
 
 Angle / unit helpers (numba `@njit`):
 - `wrap_degrees(x)` -> wrap to [-180, 180).
@@ -85,10 +83,10 @@ Rates I/O + scaling:
 - `rates_to_rubin_counts(rates, n_tristar=11_433_322_690)`
   -> mean rate * `n_tristar` sources * `24*365*10` survey hours -> expected
   10-yr Rubin event count.
-- `log_rates_to_rubin_counts(...)` -- **dead and broken** (`np.rates`), uncalled
+- `log_rates_to_rubin_counts(...)`, **dead and broken** (`np.rates`), uncalled
   (AUDIT).
 
-## rubinsim.py -- MAF detection metric
+## rubinsim.py: MAF detection metric
 
 - `run_microlensing_metric(events, baseline_file, outdir, t_start=1, t_end=3652)`
   single-strategy run: builds a `UserPointsSlicer(ra, dec)`, sets slice_points
@@ -96,7 +94,7 @@ Rates I/O + scaling:
   t_end)`, `apparent_m[_no_blend]_<band>`), runs `maf.MicrolensingMetric()` in a
   `MetricBundleGroup`.
 - `run_microlensing_metric_mult(events_list, sources, baseline_file, outdir,
-  constraint=None, metric_options={}, ...)` multi-mass loop; pickles
+  constraint=None, metric_options={}, ...)` multi-mass loop. Pickles
   `(events_info, bundle.metric_values)` per mass.
 - `run_microlensing_metric_mult_Fisher_Npts_Nights(...)` runs three
   `metric_calc` modes (`Fisher`, `Npts`, `Nnights`) per event set.
@@ -104,7 +102,7 @@ Rates I/O + scaling:
   indentation bug, AUDIT).
 - `make_ndet_df(result_files)` -> DataFrame of detection fraction per (opsim, mass).
 
-## plots.py -- diagnostics
+## plots.py: diagnostics
 
 Event distributions (`dl_hist`, `umin_hist`, `crossing_time_hist`,
 `crossing_time_umin_scatter`, `mag_in_te_bins`), detection efficiency in
@@ -114,30 +112,15 @@ crossing-time bins (`efficiency_in_te_bins`, `bin_efficiency`,
 `color_filter` are per-band constants. Many functions carry auto-generated
 `_summary_`/`_description_` docstring stubs (AUDIT: cosmetic).
 
-## STEP 1b -- installed vs backup MicrolensingMetric
+## The MicrolensingMetric
 
-`rubinsim.py` imports the **installed** `rubin_sim.maf.MicrolensingMetric`. On
-this machine that name resolves to
-`.../rubin_sim/maf/maf_contrib/microlensing_metric_new.py` (the `_new` variant:
-it adds a `Nnights` mode, combines `m52snr` with a Poisson SNR in quadrature,
-and loads instrument zeropoints at construction -- which is why it needs the
-`rubin_sim` throughput data to even instantiate).
-
-The `backup scripts/` copies were compared against the installed source:
-- `microlensing_metric.py` (backup) is functionally identical to the installed
-  (older) `microlensing_metric.py` -- same `detect`/`Npts`/`Fisher` modes, same
-  `detect_sigma=3`, `pts_needed=2`, same `m52snr`.
-- `microlensing_metric_new.py` (backup) matches the installed `_new` (Nnights,
-  quadrature SNR, zeropoints).
-- `microlensing_event_sampling.py` (backup) is a pre-MCMC sampler
-  (`LensCalcPy.eventsampling` + a Q3C `get_nearby_sources`), superseded by the
-  bespoke Metropolis-Hastings `make_events`.
-
-**Verdict:** the science does NOT depend on the custom/backup metric. Nothing in
-`rubinml/rubinml/` imports `backup scripts/`; the current code uses the installed
-metric, and the backup `microlensing_metric.py` is identical to it anyway. The
-backups are historical provenance (keep as reference; see AUDIT). Per the audit
-scope the metric choice was left unchanged.
+`rubinsim.py` imports the installed `rubin_sim.maf.MicrolensingMetric`. On this
+machine that name resolves to the `_new` variant
+(`.../rubin_sim/maf/maf_contrib/microlensing_metric_new.py`): it adds a
+`Nnights` mode, combines `m52snr` with a Poisson SNR in quadrature, and loads
+instrument zeropoints at construction, which is why it needs the `rubin_sim`
+throughput data to even instantiate. The science does not depend on a custom
+metric.
 
 ## How it runs on this machine
 
@@ -151,6 +134,6 @@ scipy 1.13.1, rubin_sim 2.0.1.dev, LensCalcPy 0.0.3 (editable from
 ```
 
 The Rubin MAF metric path needs the `rubin_sim` reference data and an opsim
-baseline `.db`, neither of which is installed here (AUDIT: Environment & Data).
-The base-state env had a broken numpy (conda dyld regression) that this audit
-repaired; details and a revert recipe are in AUDIT.
+baseline `.db`, neither of which is installed here (see `AUDIT.md`, Environment
+& Data). Some conda-forge builds ship a broken numpy (a dyld regression).
+`scripts/fix_macos_conda_rpaths.py` repairs it in place (see the README).

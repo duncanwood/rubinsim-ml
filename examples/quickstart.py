@@ -1,4 +1,4 @@
-"""rubinml quickstart -- runnable end to end with just the simulation half.
+"""rubinml quickstart, runnable end to end with just the simulation half.
 
 Reads a tiny bundled synthetic source catalog, Monte-Carlo samples microlensing
 events from the analytic rate, and reports a few summaries + analytic rates.

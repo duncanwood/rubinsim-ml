@@ -8,7 +8,7 @@
 #     python scripts/fix_macos_conda_rpaths.py
 #
 # LensCalcPy (analytic rate) and rubin_sim (MAF detection metric) are installed
-# separately -- see README.md "Installation". The MC core works without them
+# separately, see README.md "Installation". The MC core works without them
 # beyond LensCalcPy.
 name: rubinml
 channels:

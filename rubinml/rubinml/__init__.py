@@ -2,7 +2,7 @@
 
 The MC core (`events`) imports with a minimal dependency set. Plotting (`plots`,
 needs matplotlib/seaborn) and the metric orchestration (`rubinsim`, needs
-rubin_sim) are optional -- imported only if available -- so `import rubinml`
+rubin_sim) are optional, imported only if available, so `import rubinml`
 works for the simulation half on its own.
 """
 from . import events
@@ -56,5 +56,5 @@ except ImportError:  # matplotlib/seaborn not installed
 try:
     from . import rubinsim
     __all__.append("rubinsim")
-except ImportError:  # rubin_sim not installed -- simulation half still usable
+except ImportError:  # rubin_sim not installed, simulation half still usable
     rubinsim = None

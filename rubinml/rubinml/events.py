@@ -283,7 +283,7 @@ def make_events(
 
     # Metropolis-Hastings over event space. Each proposal redraws a source and
     # then draws lens distance dl ~ U(0, ds), impact parameter umin ~ U(0, u_t),
-    # and crossing time log-uniform in [t_min, t_max] -- between the daily
+    # and crossing time log-uniform in [t_min, t_max], between the daily
     # cadence and the full survey length, outside which events are not
     # recoverable. The proposal log-rate adds log(ds) (line-of-sight volume) and
     # log(crossing_time) (Jacobian of the log-uniform t draw). Acceptance is the

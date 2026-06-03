@@ -26,7 +26,7 @@ jobs:
           # numpy<2 for LensCalcPy compatibility; enforce it as a constraint so
           # transitive resolves do not pull numpy 2.
           # numpy<2 for LensCalcPy; scipy<1.14 keeps interp2d (public LensCalcPy
-          # builds may still import it -- removed in scipy 1.14).
+          # builds may still import it, removed in scipy 1.14).
           printf 'numpy<2\nscipy<1.14\n' > /tmp/constraints.txt
           # fastcore + emcee are runtime deps LensCalcPy imports but does not
           # declare in settings.ini, so install them explicitly.
