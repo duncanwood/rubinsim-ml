@@ -1,4 +1,4 @@
-# rubinml: code map
+# lensemble: code map
 
 Microlensing event simulation from my [dissertation](https://escholarship.org/uc/item/9g81m0j9).
 It Monte-Carlo samples an analytic differential microlensing event rate for an NFW dark-matter
@@ -17,8 +17,9 @@ This document maps the code. Findings and the environment/data caveats are in
 ## Layout
 
 ```
-rubin-sim-ml/
-  rubinml/rubinml/
+lensemble/
+  pyproject.toml       build config (setuptools; requires-python >=3.11)
+  lensemble/
     __init__.py        from .events import *  /  .plots  /  .rubinsim   (star imports)
     events.py          MC core: analytic rate + Metropolis-Hastings sampler
     rubinsim.py        rubin_sim MAF orchestration (the detection metric)
@@ -126,7 +127,7 @@ metric.
 
 Conda env `rubinsim` (Python 3.11.9): numpy 1.26.4, pandas 2.2.2, numba 0.59.1,
 scipy 1.13.1, rubin_sim 2.0.1.dev, LensCalcPy 0.0.3 (editable from
-`../LensCalcPy`), matplotlib 3.8.4, seaborn 0.13.2. `import rubinml` succeeds and
+`../LensCalcPy`), matplotlib 3.8.4, seaborn 0.13.2. `import lensemble` succeeds and
 `make_events` + the analytic-rate path run. Tests:
 
 ```

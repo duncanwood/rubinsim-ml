@@ -1,4 +1,4 @@
-# rubinml pinned dependencies (Python 3.11)
+# lensemble pinned dependencies (Python 3.11)
 # Versions are those verified working in the project conda env "rubinsim"
 # (Python 3.11.9) on 2026-06-01. See AUDIT.md for environment notes.
 #

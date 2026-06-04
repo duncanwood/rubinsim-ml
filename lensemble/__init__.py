@@ -1,8 +1,8 @@
-"""rubinml: Monte-Carlo microlensing event simulation + Rubin/LSST detection.
+"""lensemble: Monte-Carlo microlensing event simulation + Rubin/LSST detection.
 
 The MC core (`events`) imports with a minimal dependency set. Plotting (`plots`,
 needs matplotlib/seaborn) and the metric orchestration (`rubinsim`, needs
-rubin_sim) are optional, imported only if available, so `import rubinml`
+rubin_sim) are optional, imported only if available, so `import lensemble`
 works for the simulation half on its own.
 """
 from . import events

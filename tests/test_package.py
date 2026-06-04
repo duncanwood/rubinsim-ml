@@ -6,20 +6,20 @@ import unittest
 
 class PackageApi(unittest.TestCase):
     def test_public_api(self):
-        import rubinml
+        import lensemble
         for name in ("make_events", "make_full_event_df", "source_lensing_rate",
                      "rates_to_rubin_counts", "calculate_lensing_rates",
                      "N_TRISTAR", "SURVEY_HOURS", "DAILY_CADENCE_HOURS"):
-            self.assertTrue(hasattr(rubinml, name), f"missing rubinml.{name}")
-        self.assertTrue(callable(rubinml.make_events))
-        self.assertIsNotNone(rubinml.events)            # core always imports
+            self.assertTrue(hasattr(lensemble, name), f"missing lensemble.{name}")
+        self.assertTrue(callable(lensemble.make_events))
+        self.assertIsNotNone(lensemble.events)            # core always imports
 
     def test_optional_submodules_present_as_attrs(self):
-        import rubinml
+        import lensemble
         # plots (matplotlib/seaborn) and rubinsim (rubin_sim) are optional: the
         # attribute always exists, bound to the module or to None.
-        self.assertTrue(hasattr(rubinml, "plots"))
-        self.assertTrue(hasattr(rubinml, "rubinsim"))
+        self.assertTrue(hasattr(lensemble, "plots"))
+        self.assertTrue(hasattr(lensemble, "rubinsim"))
 
 
 if __name__ == "__main__":

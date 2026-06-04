@@ -1,6 +1,6 @@
-"""Shared test harness for the rubinml audit suite.
+"""Shared test harness for the lensemble audit suite.
 
-Loads rubinml.events as a standalone module (bypassing the package __init__,
+Loads lensemble.events as a standalone module (bypassing the package __init__,
 which pulls in rubin_sim via `from .rubinsim import *`) and provides the
 canonical small source set used by the golden / parity tests.
 
@@ -23,8 +23,8 @@ from pathlib import Path
 os.environ.setdefault("TQDM_DISABLE", "1")  # silence progress bars in tests
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parent                                  # .../rubin-sim-ml
-EVENTS_PY = REPO / "rubinml" / "rubinml" / "events.py"
+REPO = HERE.parent                                  # .../lensemble
+EVENTS_PY = REPO / "lensemble" / "events.py"
 FIXTURES = HERE / "fixtures"
 GOLDEN = HERE / "golden"
 
@@ -35,10 +35,10 @@ if (_LCP / "LensCalcPy" / "__init__.py").exists():
 
 
 def load_events():
-    """Import rubinml/rubinml/events.py as a standalone module."""
-    spec = importlib.util.spec_from_file_location("rubinml_events", str(EVENTS_PY))
+    """Import lensemble/events.py as a standalone module."""
+    spec = importlib.util.spec_from_file_location("lensemble_events", str(EVENTS_PY))
     mod = importlib.util.module_from_spec(spec)
-    sys.modules["rubinml_events"] = mod
+    sys.modules["lensemble_events"] = mod
     spec.loader.exec_module(mod)
     return mod
 

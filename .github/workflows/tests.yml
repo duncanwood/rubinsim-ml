@@ -34,13 +34,13 @@ jobs:
           # LensCalcPy: the project fork (added rate functions + no-arg
           # MilkyWayModel); public NolanSmyth HEAD has a different API.
           pip install -c /tmp/constraints.txt --no-build-isolation "git+https://github.com/duncanwood/LensCalcPy.git@3bc16f5290b3837f811c9da119b1d3a04fe3f00a"
-          pip install -c /tmp/constraints.txt -e rubinml
+          pip install -c /tmp/constraints.txt -e .
 
       - name: Run tests
         env:
           CI: "true"   # skips the platform-specific exact MH golden (see test_parity.py)
-        # Run from a neutral dir so `import rubinml` resolves to the installed
-        # package, not the repo-root rubinml/ directory (which would shadow it
+        # Run from a neutral dir so `import lensemble` resolves to the installed
+        # package, not the repo-root lensemble/ directory (which would shadow it
         # as a namespace package). The harness finds events.py by absolute path.
         working-directory: ${{ runner.temp }}
         run: python -m unittest discover -s "$GITHUB_WORKSPACE/tests" -t "$GITHUB_WORKSPACE/tests" -p "test_*.py" -v

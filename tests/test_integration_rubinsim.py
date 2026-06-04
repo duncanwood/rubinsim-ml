@@ -82,15 +82,15 @@ class RealMafMetric(unittest.TestCase):
             self.skipTest("no opsim baseline .db found (see AUDIT.md 'Data dependencies')")
 
         import tempfile
-        import rubinml  # full package import works once rubin_sim is available
+        import lensemble  # full package import works once rubin_sim is available
 
         events = pd.read_csv(H.GOLDEN / "make_events_seed0.csv")
         sources = H.build_sources()
         full = ev.make_full_event_df(events, sources)
-        outdir = tempfile.mkdtemp(prefix="rubinml_maf_")
+        outdir = tempfile.mkdtemp(prefix="lensemble_maf_")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            rubinml.rubinsim.run_microlensing_metric(full, baseline, outdir)
+            lensemble.rubinsim.run_microlensing_metric(full, baseline, outdir)
         # run_all writes per-metric result artifacts under outdir
         produced = [f for _, _, fs in os.walk(outdir) for f in fs]
         self.assertTrue(len(produced) > 0, "MAF run produced no output files")

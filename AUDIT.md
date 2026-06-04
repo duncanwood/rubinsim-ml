@@ -1,4 +1,4 @@
-# rubinml: audit
+# lensemble: audit
 
 Notes from auditing this code: what I found, and what I fixed. The fixes are
 summarized below, and each finding is kept as the rationale of record. The parity
@@ -177,7 +177,7 @@ baseline key `'baseline_v3.6_10yrs'` for normalization, make it a parameter.
 ### 10. [STRUCT] Star imports and the rubin_sim coupling
 `__init__.py` does `from .events import *`, `from .plots import *`,
 `from .rubinsim import *`. Because `rubinsim` (via `plots` too) imports
-`rubin_sim`, **`import rubinml` cannot succeed without rubin_sim installed**, even
+`rubin_sim`, **`import lensemble` cannot succeed without rubin_sim installed**, even
 to use only the MC core. Proposal: drop the star imports for explicit names, and
 either lazy-import `rubin_sim` inside the metric functions or split the metric
 module so `events` is usable standalone. (The tests load `events.py` directly to
@@ -267,8 +267,8 @@ cross-platform). The `lenscalc_rate_available()` guard is kept so the tests stil
 degrade gracefully on a machine without the fork.
 
 ### 16. [ENV] Packaging
-`rubinml/setup.py` uses `distutils` (removed in Python 3.12) with `version='0.0'`
-and `py_modules=['rubinml', ...]` (the code is a package, not top-level modules).
+`lensemble/setup.py` uses `distutils` (removed in Python 3.12) with `version='0.0'`
+and `py_modules=['lensemble', ...]` (the code is a package, not top-level modules).
 Proposal: a minimal `pyproject.toml` with `install_requires` from
 `requirements.txt`.
 

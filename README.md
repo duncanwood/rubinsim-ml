@@ -1,9 +1,9 @@
-# rubinml
+# lensemble
 
 Monte-Carlo simulation of gravitational **microlensing events** and their
 detectability by the **Rubin Observatory / LSST**.
 
-`rubinml` samples an analytic differential event-rate for an NFW dark-matter
+`lensemble` samples an analytic differential event-rate for an NFW dark-matter
 (e.g. primordial black hole) lens population folded through a Milky Way model,
 then pushes the sampled events through Rubin's `MicrolensingMetric` (MAF) to
 estimate detection efficiency across observing-cadence strategies.
@@ -33,7 +33,7 @@ detection fractions  ->  plots (efficiency vs crossing time, cadence comparison,
 
 The two halves are decoupled: the **simulation + rate** half needs only
 LensCalcPy, and the **detection-metric** half needs `rubin_sim` and survey data.
-`import rubinml` works with just the simulation half installed (`rubinml.rubinsim`
+`import lensemble` works with just the simulation half installed (`lensemble.rubinsim`
 is `None` when `rubin_sim` is absent).
 
 ## Installation
@@ -44,7 +44,7 @@ Python 3.11. The reference environment is conda/mamba.
 
 ```bash
 mamba env create -f environment.yml
-conda activate rubinml
+conda activate lensemble
 ```
 
 `numpy` is pinned `<2` for `rubin_sim` / `LensCalcPy` compatibility.
@@ -98,7 +98,7 @@ its path to `run_microlensing_metric`.
 ### 4. The package
 
 ```bash
-pip install -e rubinml
+pip install -e .
 ```
 
 ## Quickstart
@@ -108,7 +108,7 @@ output:
 
 ```python
 import numpy as np, pandas as pd
-import rubinml
+import lensemble
 
 # A real run uses a TRIStar/TRILEGAL catalog; here a tiny synthetic stand-in.
 sources = pd.DataFrame({
@@ -119,21 +119,21 @@ sources = pd.DataFrame({
        ("umag", "gmag", "rmag", "imag", "zmag", "ymag")},
 })
 
-events = rubinml.make_events(
+events = lensemble.make_events(
     sources, "events.pkl", n_survey_events=1000, pbhmass=1.0, ntoss=2000,
     rng=np.random.default_rng(0),
 )
 
 # analytic rate for one source (1/hour):
-mw = rubinml.events.MilkyWayModel()
-rate = rubinml.source_lensing_rate(2.0, -3.0, rubinml.kpc_from_mu0(14.5), mw)
+mw = lensemble.events.MilkyWayModel()
+rate = lensemble.source_lensing_rate(2.0, -3.0, lensemble.kpc_from_mu0(14.5), mw)
 ```
 
 Detection half (needs `rubin_sim` + reference data + an opsim `.db`):
 
 ```python
-full = rubinml.make_full_event_df(events, sources)
-rubinml.rubinsim.run_microlensing_metric(full, "baseline_v3.4_10yrs.db", "out/")
+full = lensemble.make_full_event_df(events, sources)
+lensemble.rubinsim.run_microlensing_metric(full, "baseline_v3.4_10yrs.db", "out/")
 ```
 
 ## Tests
@@ -163,7 +163,7 @@ reproduces the old numbers. `main`/`master` has the corrected behavior.
 ## Repository layout
 
 ```
-rubinml/rubinml/       package: events.py (MC core), rubinsim.py (MAF), plots.py
+lensemble/             package: events.py (MC core), rubinsim.py (MAF), plots.py
 tests/                 unit + parity + golden + integration
 scripts/               fix_macos_conda_rpaths.py (env repair helper)
 MAP.md / AUDIT.md      architecture map / audit findings
